@@ -43,6 +43,17 @@ cargo xtask tui-test
 cargo xtask tui-dev
 ```
 
+For the Docusaurus blog/docs site under `blog/`, prefer Cargo-facing xtask commands instead of running package-manager commands directly:
+
+```bash
+cargo xtask blog-install
+cargo xtask blog-build
+cargo xtask blog-typecheck
+cargo xtask blog-serve
+```
+
+Keep xtask command modules as thin wrappers around reusable implementation modules. When adding or renaming an xtask command, add a matching checked-in IDE run profile under `.run/` using the `xtask: <command>` naming pattern.
+
 ## Architecture
 
 KQode is planned as a Rust-first coding-agent harness with a replaceable TypeScript Ink TUI. The checked-in implementation is still at the project-foundation stage, so treat the `docs/` specs as the product direction while keeping changes aligned with the current code shape.

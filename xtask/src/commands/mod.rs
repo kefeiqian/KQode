@@ -1,5 +1,6 @@
 use std::path::Path;
 
+pub mod blog;
 pub mod fixture;
 pub mod help;
 pub mod tui;
@@ -13,7 +14,12 @@ pub struct CommandSpec {
 }
 
 const HELP_COMMANDS: &[CommandSpec] = &[help::COMMAND];
-const COMMAND_GROUPS: &[&[CommandSpec]] = &[fixture::COMMANDS, tui::COMMANDS, HELP_COMMANDS];
+const COMMAND_GROUPS: &[&[CommandSpec]] = &[
+    fixture::COMMANDS,
+    tui::COMMANDS,
+    blog::COMMANDS,
+    HELP_COMMANDS,
+];
 
 pub fn run(command: Option<&str>, repo_root: &Path) -> Result<(), String> {
     let command = command.unwrap_or(help::COMMAND.name);

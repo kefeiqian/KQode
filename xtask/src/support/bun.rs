@@ -3,11 +3,21 @@ use std::{path::Path, process::Command};
 use crate::support::paths;
 
 pub fn run(repo_root: &Path, args: &[&str]) -> Result<(), String> {
+    run_in(&paths::tui_package_root(repo_root), args)
+}
+
+pub fn run_in(package_root: &Path, args: &[&str]) -> Result<(), String> {
     let status = Command::new(command())
         .args(args)
-        .current_dir(paths::tui_package_root(repo_root))
+        .current_dir(package_root)
         .status()
-        .map_err(|error| format!("run bun {}: {error}", args.join(" ")))?;
+        .map_err(|error| {
+            format!(
+                "run bun {} in {}: {error}",
+                args.join(" "),
+                package_root.display()
+            )
+        })?;
 
     if status.success() {
         Ok(())
