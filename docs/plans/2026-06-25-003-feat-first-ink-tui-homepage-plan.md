@@ -502,42 +502,34 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Dependencies:** None.
 
-**Files:**
-- [ ] Modify: `Cargo.toml`
-- [ ] Modify: `Cargo.lock`
-- [ ] Move/modify: `main.rs`
-- [ ] Create: `src/backend.rs`
-- [ ] Create: `src/protocol.rs`
-- [ ] Create: `tests/main.rs`
-
 **Approach:**
-- [ ] Add a small internal JSON-RPC stdio backend mode selected by a command-line argument, with no model/provider/tool logic.
-- [ ] Use `lsp-server` to read JSON-RPC requests from stdin and write JSON-RPC responses to stdout.
-- [ ] Support only the message-submit method in this unit; do not add a daemon, tool dispatcher, or streaming assistant loop. U11 adds the separate first-slice session persistence methods.
-- [ ] Define JSON-RPC method/event names, response status strings, error kinds, and non-obvious numeric limits as enums or named constants in `src/protocol.rs`; do not scatter hard-coded strings like `kqode.message.submit` or magic numbers through handlers/tests.
-- [ ] Treat malformed transport/framing input as a fatal transport error handled by the backend client lifecycle; return JSON-RPC errors through the library response path for valid requests with unsupported methods or invalid params.
-- [ ] Preserve a harmless default path for running the binary without the backend mode.
-- [ ] Keep error behavior explicit rather than silently treating read/write failures as success.
-- [ ] Configure `Cargo.toml` so the binary target uses root `main.rs`; keep that file as argument dispatch only. Put backend loop and protocol types in modules under `src/` when implementation would otherwise push a file above roughly 200 lines.
+- [x] Add a small internal JSON-RPC stdio backend mode selected by a command-line argument, with no model/provider/tool logic.
+- [x] Use `lsp-server` to read JSON-RPC requests from stdin and write JSON-RPC responses to stdout.
+- [x] Support only the message-submit method in this unit; do not add a daemon, tool dispatcher, or streaming assistant loop. U11 adds the separate first-slice session persistence methods.
+- [x] Define JSON-RPC method/event names, response status strings, error kinds, and non-obvious numeric limits as enums or named constants in `src/protocol.rs`; do not scatter hard-coded strings like `kqode.message.submit` or magic numbers through handlers/tests.
+- [x] Treat malformed transport/framing input as a fatal transport error handled by the backend client lifecycle; return JSON-RPC errors through the library response path for valid requests with unsupported methods or invalid params.
+- [x] Preserve a harmless default path for running the binary without the backend mode.
+- [x] Keep error behavior explicit rather than silently treating read/write failures as success.
+- [x] Configure `Cargo.toml` so the binary target uses root `main.rs`; keep that file as argument dispatch only. Put backend loop and protocol types in modules under `src/` when implementation would otherwise push a file above roughly 200 lines.
 
 **Patterns to follow:**
-- [ ] Keep dependencies minimal; JSON serialization/parsing dependencies are acceptable because JSON-RPC is now the transport requirement.
-- [ ] Keep this in the current single package; do not create the future crate workspace as part of this slice.
-- [ ] Prefer focused modules/components/helpers over monolithic files; no source file in this slice should exceed roughly 200 lines unless there is a clear reason documented in review.
-- [ ] Follow the project constants/enums rule: protocol names and magic values belong in enums/constants that tests import, not in repeated string/number literals.
+- [x] Keep dependencies minimal; JSON serialization/parsing dependencies are acceptable because JSON-RPC is now the transport requirement.
+- [x] Keep this in the current single package; do not create the future crate workspace as part of this slice.
+- [x] Prefer focused modules/components/helpers over monolithic files; no source file in this slice should exceed roughly 200 lines unless there is a clear reason documented in review.
+- [x] Follow the project constants/enums rule: protocol names and magic values belong in enums/constants that tests import, not in repeated string/number literals.
 
 **Test scenarios:**
-- [ ] Happy path: a JSON-RPC `kqode.message.submit` request containing `hello from tui` returns a success response with `message: "ACK: message received"` and `receivedText: "hello from tui"`.
-- [ ] Happy path: tests build requests through the protocol enum/constant rather than duplicating method-name string literals.
-- [ ] Edge case: Unicode text and newline characters inside JSON-RPC params are preserved exactly in `receivedText`.
-- [ ] Edge case: an empty string request returns a valid ACK response for backend contract completeness, even though the TUI blocks empty submits.
-- [ ] Error path: malformed transport/framing input exits non-successfully with visible stderr and is handled as a fatal transport error by the client lifecycle.
-- [ ] Error path: unsupported method or invalid params returns a JSON-RPC error response.
-- [ ] Error path: invalid backend invocation or unexpected input failure exits non-successfully with visible stderr.
-- [ ] Integration: the Rust test exercises the compiled binary path rather than only a helper function.
+- [x] Happy path: a JSON-RPC `kqode.message.submit` request containing `hello from tui` returns a success response with `message: "ACK: message received"` and `receivedText: "hello from tui"`.
+- [x] Happy path: tests build requests through the protocol enum/constant rather than duplicating method-name string literals.
+- [x] Edge case: Unicode text and newline characters inside JSON-RPC params are preserved exactly in `receivedText`.
+- [x] Edge case: an empty string request returns a valid ACK response for backend contract completeness, even though the TUI blocks empty submits.
+- [x] Error path: malformed transport/framing input exits non-successfully with visible stderr and is handled as a fatal transport error by the client lifecycle.
+- [x] Error path: unsupported method or invalid params returns a JSON-RPC error response.
+- [x] Error path: invalid backend invocation or unexpected input failure exits non-successfully with visible stderr.
+- [x] Integration: the Rust test exercises the compiled binary path rather than only a helper function.
 
 **Verification:**
-- [ ] The backend mode provides a deterministic local JSON-RPC ACK proof and does not invoke provider, agent, or tool behavior.
+- [x] The backend mode provides a deterministic local JSON-RPC ACK proof and does not invoke provider, agent, or tool behavior.
 
 ---
 
@@ -549,16 +541,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Origin trace:** Covers F1 and AE1.
 
 **Dependencies:** U1.
-
-**Files:**
-- [ ] Create: `tui/src/theme/tokens.ts`
-- [ ] Create: `tui/src/components/Header.tsx`
-- [ ] Create: `tui/src/components/BodyPane.tsx`
-- [ ] Create: `tui/src/components/CwdLine.tsx`
-- [ ] Create: `tui/src/components/StatusBar.tsx`
-- [ ] Create: `tui/src/components/HomeScreen.tsx`
-- [ ] Create: `tui/src/components/__tests__/HomeScreen.test.tsx`
-- [ ] Modify: `tui/src/App.tsx`
 
 **Approach:**
 - [ ] Centralize One Dark Pro-inspired colors in theme tokens.
@@ -598,14 +580,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Origin trace:** Covers the input leg of F2 and AE2.
 
 **Dependencies:** U1, U3.
-
-**Files:**
-- [ ] Create: `tui/src/components/PromptComposer.tsx`
-- [ ] Create: `tui/src/state/composerReducer.ts`
-- [ ] Create: `tui/src/components/__tests__/PromptComposer.test.tsx`
-- [ ] Create: `tui/src/state/__tests__/composerReducer.test.ts`
-- [ ] Modify: `tui/src/components/HomeScreen.tsx`
-- [ ] Modify: `tui/src/App.tsx`
 
 **Approach:**
 - [ ] Keep printable input, backspace/delete, Enter submit, and empty-submit behavior explicit in composer state.
@@ -648,13 +622,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Dependencies:** U1, U2.
 
-**Files:**
-- [ ] Create: `tui/src/backend/BackendClient.ts`
-- [ ] Create: `tui/src/backend/messageProtocol.ts`
-- [ ] Modify: `tui/package.json`
-- [ ] Modify: `tui/bun.lock`
-- [ ] Create: `tui/src/backend/__tests__/messageProtocol.test.ts`
-
 **Approach:**
 - [ ] Add `vscode-jsonrpc` to the TUI package dependencies.
 - [ ] Define a narrow backend client interface that returns either an ACK result or an explicit error.
@@ -684,12 +651,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Origin trace:** Supports the backend process leg of F2 and is a prerequisite for AE3.
 
 **Dependencies:** U1, U2, U5.
-
-**Files:**
-- [ ] Create: `tui/src/backend/backendProcess.ts`
-- [ ] Create: `tui/src/backend/__tests__/backendProcess.test.ts`
-- [ ] Modify: `tui/package.json`
-- [ ] Modify: `tui/bun.lock`
 
 **Approach:**
 - [ ] Add `tree-kill` and related typings if needed.
@@ -733,10 +694,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Dependencies:** U5, U8.
 
-**Files:**
-- [ ] Create: `tui/src/backend/processBackendClient.ts`
-- [ ] Create: `tui/src/backend/__tests__/processBackendClient.test.ts`
-
 **Approach:**
 - [ ] Start one backend process for the TUI session and create a `vscode-jsonrpc` connection over its stdio pipes.
 - [ ] Expose `message.submit` through the narrow backend-client interface for G1. U11/U12 extend the interface with `session.start`, `session.list`, and `session.resume`.
@@ -767,18 +724,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Origin trace:** Extends F2 and AE3 so the ACK demo is durable and resumable instead of memory-only.
 
 **Dependencies:** U2, U5.
-
-**Files:**
-- [ ] Modify: `Cargo.toml`
-- [ ] Modify: `Cargo.lock`
-- [ ] Modify: `main.rs`
-- [ ] Create: `src/session_store.rs`
-- [ ] Create: `src/session_protocol.rs`
-- [ ] Create: `tests/session_store.rs`
-- [ ] Create: `tui/src/backend/sessionProtocol.ts`
-- [ ] Create: `tui/src/backend/__tests__/sessionProtocol.test.ts`
-- [ ] Modify: `tui/src/backend/BackendClient.ts`
-- [ ] Modify: `tui/src/backend/messageProtocol.ts`
 
 **Approach:**
 - [ ] Add SQLite storage under the Rust backend, not under display components or TUI-only state.
@@ -823,13 +768,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Origin trace:** Covers F2 and AE3 end-to-end.
 
 **Dependencies:** U3, U4, U5, U9.
-
-**Files:**
-- [ ] Create: `tui/src/__tests__/App.submit.test.tsx`
-- [ ] Create: `tui/src/text/sanitizeDisplayText.ts`
-- [ ] Create: `tui/src/text/__tests__/sanitizeDisplayText.test.ts`
-- [ ] Modify: `tui/src/App.tsx`
-- [ ] Modify: `tui/src/components/BodyPane.tsx`
 
 **Approach:**
 - [ ] Inject the backend client into App state so tests can use a mock and production can use the process client.
@@ -876,15 +814,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Origin trace:** Extends F1/F2 by adding durable session selection and continuation.
 
 **Dependencies:** U3, U4, U6, U11.
-
-**Files:**
-- [ ] Create: `tui/src/components/ResumeSessionList.tsx`
-- [ ] Create: `tui/src/components/__tests__/ResumeSessionList.test.tsx`
-- [ ] Create: `tui/src/state/sessionTranscriptReducer.ts`
-- [ ] Create: `tui/src/state/__tests__/sessionTranscriptReducer.test.ts`
-- [ ] Modify: `tui/src/App.tsx`
-- [ ] Modify: `tui/src/components/BodyPane.tsx`
-- [ ] Modify: `tui/src/components/PromptComposer.tsx`
 
 **Approach:**
 - [ ] Treat `/resume` as a command only when the composer content is exactly `/resume` after trimming. Other slash-prefixed text remains normal prompt content for this slice.
@@ -941,15 +870,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Dependencies:** U2, U6, U8, U9, U11, U12.
 
-**Files:**
-- [ ] Create: `tui/rollup.config.mjs`
-- [ ] Modify: `tui/package.json`
-- [ ] Modify: `tui/src/main.tsx`
-- [ ] Modify: `tui/src/backend/backendProcess.ts`
-- [ ] Modify: `tui/src/backend/processBackendClient.ts`
-- [ ] Modify: `.gitignore`
-- [ ] Modify: `README.md`
-
 **Approach:**
 - [ ] Use Rollup to bundle the TypeScript Ink entrypoint into `tui/dist/main.js` as the Node SEA input, with an explicit Node target and external/native module handling.
 - [ ] Configure Rollup for dependency closure: bundle TypeScript TUI code plus runtime JS dependencies such as Ink, React, and JSON-RPC helpers into the SEA entrypoint; externalize only Node built-ins and explicitly documented native/asset cases.
@@ -989,14 +909,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Origin trace:** Extends AE3 by proving the packaged ACK demo has a user-installable artifact shape, not only a developer-local build.
 
 **Dependencies:** U7.
-
-**Files:**
-- [ ] Modify: `tui/package.json`
-- [ ] Create: `tui/scripts/distribution/package-release.mjs`
-- [ ] Modify: `xtask/src/main.rs`
-- [ ] Create: `docs/release/kqode_distribution_registration.md`
-- [ ] Modify: `.gitignore`
-- [ ] Modify: `README.md`
 
 **Approach:**
 - [ ] Define the first supported target matrix for the standalone executable: macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64. Linux libc split can be refined during implementation if Node SEA or Rust backend constraints require separate GNU/musl artifacts.
@@ -1048,13 +960,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Origin trace:** Turns U10's local release artifacts into direct-download GitHub Release assets for downstream npm/Homebrew/winget registration.
 
 **Dependencies:** U7, U10.
-
-**Files:**
-- [ ] Create: `.github/workflows/release.yml`
-- [ ] Modify: `xtask/src/main.rs`
-- [ ] Modify: `tui/package.json`
-- [ ] Modify: `README.md`
-- [ ] Modify: `docs/release/kqode_distribution_registration.md`
 
 **Approach:**
 - [ ] Trigger on version tags such as `v*` and allow manual `workflow_dispatch` for release candidates.
