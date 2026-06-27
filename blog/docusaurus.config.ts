@@ -19,16 +19,16 @@ const config: Config = {
   trailingSlash: false,
 
   i18n: {
-    defaultLocale: 'en',
-    locales: ['en', 'zh-Hans'],
+    defaultLocale: 'zh-Hans',
+    locales: ['zh-Hans', 'en'],
     localeConfigs: {
-      en: {
-        label: 'English',
-        htmlLang: 'en-US',
-      },
       'zh-Hans': {
         label: '简体中文',
         htmlLang: 'zh-CN',
+      },
+      en: {
+        label: 'English',
+        htmlLang: 'en-US',
       },
     },
   },
