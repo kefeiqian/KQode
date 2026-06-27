@@ -1,0 +1,32 @@
+use crate::commands::CommandSpec;
+
+pub mod dev;
+pub mod install;
+pub mod test;
+pub mod typecheck;
+
+pub const DEV: CommandSpec = CommandSpec {
+    name: "tui-dev",
+    description: "Run the TUI from the workspace, choosing a fixture if missing",
+    run: dev::run,
+};
+
+pub const INSTALL: CommandSpec = CommandSpec {
+    name: "tui-install",
+    description: "Install the nested TUI package dependencies with Bun",
+    run: install::run,
+};
+
+pub const TYPECHECK: CommandSpec = CommandSpec {
+    name: "tui-typecheck",
+    description: "Run the nested TUI TypeScript typecheck",
+    run: typecheck::run,
+};
+
+pub const TEST: CommandSpec = CommandSpec {
+    name: "tui-test",
+    description: "Run the nested TUI test suite",
+    run: test::run,
+};
+
+pub const COMMANDS: &[CommandSpec] = &[DEV, INSTALL, TYPECHECK, TEST];

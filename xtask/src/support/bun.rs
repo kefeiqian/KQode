@@ -1,0 +1,41 @@
+use std::{path::Path, process::Command};
+
+use crate::support::paths;
+
+pub fn run(repo_root: &Path, args: &[&str]) -> Result<(), String> {
+    let status = Command::new(command())
+        .args(args)
+        .current_dir(paths::tui_package_root(repo_root))
+        .status()
+        .map_err(|error| format!("run bun {}: {error}", args.join(" ")))?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("bun {} exited with {status}", args.join(" ")))
+    }
+}
+
+/// Installs the nested TUI dependencies when `tui-dev` is run from a fresh checkout.
+///
+/// The check is intentionally based on the local `tsx` executable because
+/// `tui-dev` invokes that binary directly from the selected workspace cwd.
+///
+/// # Errors
+///
+/// Returns an error when Bun cannot be started or `bun install` exits
+/// unsuccessfully.
+pub fn ensure_tui_dependencies(repo_root: &Path) -> Result<(), String> {
+    let tsx = paths::tui_bin(repo_root, "tsx");
+
+    if tsx.is_file() {
+        Ok(())
+    } else {
+        println!("TUI dependencies are missing; running bun install.");
+        run(repo_root, &["install"])
+    }
+}
+
+pub fn command() -> &'static str {
+    if cfg!(windows) { "bun.exe" } else { "bun" }
+}

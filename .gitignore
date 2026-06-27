@@ -2,6 +2,20 @@
 /target/
 /.kqode-research/
 
+# TUI Node artifacts
+/tui/node_modules/
+/tui/dist/
+/tui/coverage/
+/tui/.vite/
+/tui/.vitest/
+
+# Fixture-local artifacts
+/tests/fixtures/dummy-react-app/node_modules/
+/tests/fixtures/dummy-react-app/dist/
+/tests/fixtures/dummy-react-app/coverage/
+/tests/fixtures/dummy-react-app/.vite/
+/target/kqode-test-workspaces/
+
 # Local environment and logs
 .env
 .env.*
@@ -11,7 +25,10 @@
 # Editor and local workspace state
 .idea/
 .vscode/
-.obsidian/
+.obsidian/*
+!.obsidian/snippets/
+.obsidian/snippets/*
+!.obsidian/snippets/no-task-strikethrough.css
 *.swp
 *.swo
 *~

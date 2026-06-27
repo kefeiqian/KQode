@@ -1,0 +1,20 @@
+/*
+ * Keep checked task text readable in Obsidian plan docs.
+ *
+ * Obsidian normally strikes through the whole task line when a checkbox is
+ * checked. KQode uses task checkboxes as review controls, so checked content
+ * should stay readable while the checkbox still toggles normally.
+ */
+
+body {
+  --checklist-done-color: inherit;
+  --checklist-done-decoration: none;
+}
+
+.markdown-preview-view .task-list-item.is-checked,
+.markdown-preview-view .task-list-item.is-checked *,
+.markdown-source-view.mod-cm6 .HyperMD-task-line[data-task="x"] {
+  color: inherit !important;
+  opacity: 1 !important;
+  text-decoration: none !important;
+}

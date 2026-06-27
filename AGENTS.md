@@ -4,27 +4,93 @@
 
 When creating or updating Markdown plan documents under `docs/plans/`, keep the top `#` document title clean and do not add a review checkbox to it.
 
-If review tracking is requested for plan sections, add an Obsidian-clickable callout directly under each real section heading:
+When review tracking is requested, put the checkbox directly on the affected content bullet:
 
 ```md
-## Section Title
-> [!todo] Section review
-> - [ ] Reviewed this section
+- [ ] New or updated decision that needs review
+- [x] Existing decision whose checked state should be preserved
 ```
 
-Preserve existing checked state when rewriting review controls. Avoid inline heading checkboxes and standalone `- [ ] Reviewed` items under sections, because Obsidian renders them as list review items rather than section review controls.
+Use item-level checkboxes for bullet lists so only newly created or changed bullets are reset to unchecked. Preserve existing checked state when rewriting review controls. Avoid section-level review callouts, inline heading checkboxes, review checkboxes inside Markdown tables, and standalone `- [ ] Reviewed` items under sections, because Obsidian renders them as broad, ambiguous, or non-clickable review controls rather than meaningful content review controls.
 
-If a `##` section is only a container for reviewed `###` subsections, omit the parent review callout and track review state on the subsections instead. Keep a parent review callout only when the parent section has standalone reviewable content separate from its subsections.
+If a `##` section is only a container for reviewed `###` subsections, do not add parent review controls. Track review state on the specific changed bullets inside the relevant subsection instead.
 
-When changing content in a reviewed section, reset that section's review checkbox to unchecked. If the changed content belongs to a subsection, reset the nearest subsection review checkbox rather than a parent container that intentionally has no review callout.
+When changing content, reset only the changed content bullets to unchecked. If the changed content belongs to a subsection, update the item-level controls inside that subsection rather than adding a parent section control.
 
 ## File size guideline
 
 Across the project, prefer focused source files that stay at or below roughly 200 lines. Split modules/components/helpers before a file grows beyond that size unless there is a clear, review-documented reason to keep it larger.
 
+## Build, test, and lint
+
+This repository is a Rust-first project. Use these commands from the repository root:
+
+```bash
+cargo build
+cargo run
+cargo test --workspace
+cargo test -p <crate-name> <test_name>
+cargo fmt --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+```
+
+For the nested TUI package, prefer Cargo-facing xtask commands instead of running package-manager commands directly:
+
+```bash
+cargo xtask tui-install
+cargo xtask tui-typecheck
+cargo xtask tui-test
+cargo xtask tui-dev
+```
+
+## Architecture
+
+KQode is planned as a Rust-first coding-agent harness with a replaceable TypeScript Ink TUI. The checked-in implementation is still at the project-foundation stage, so treat the `docs/` specs as the product direction while keeping changes aligned with the current code shape.
+
+Rust owns the core runtime: agent loop, provider abstraction, tool registry, VFS/patch application, sandbox-lite process execution, policy engine, session store, replay engine, eval runner, MCP core, and headless CLI. TypeScript owns rich surfaces: Ink TUI, protocol client, plugin authoring helpers, IDE/ACP adapters, and future web or desktop companions. Python is only for benchmark/eval adapters where the ecosystem makes it cheaper.
+
+The intended runtime boundary is:
+
+```text
+TypeScript Ink TUI
+  -> JSON-RPC or JSONL protocol
+Rust kqode daemon / CLI
+  -> agent loop
+  -> provider adapter
+  -> tool registry
+  -> VFS and sandbox
+  -> session store and trace log
+  -> eval runner
+```
+
+The Rust core must run headless without the TUI. Daemon mode is planned later and should not be required for early milestones.
+
+The planned Rust crate boundaries are `kqode-core`, `kqode-cli`, `kqode-protocol`, `kqode-provider`, `kqode-tools`, `kqode-vfs`, `kqode-sandbox`, `kqode-policy`, `kqode-session`, `kqode-mcp`, and `kqode-eval`. Keep these boundaries in mind before adding modules to the starter crate.
+
 ## Constants and enums
 
 Avoid hard-coded protocol names, event names, status strings, and non-obvious numeric literals. Define shared enums or named constants for these values so Rust and TypeScript protocol code stays searchable and consistent.
+
+## Rust documentation
+
+Use rustdoc comments (`///`) for non-trivial public functions, structs, modules, and helpers. Prefer concise Markdown prose with backticked parameter names over JSDoc-style `@param` tags.
+
+For functions that can fail in non-obvious ways, include a `# Errors` section. Use `# Panics`, `# Safety`, and `# Examples` only when they add real value.
+
+## Project-specific conventions
+
+- Follow the milestone order in `docs/kqode_build_path.md`: build a working local terminal agent before expanding into MCP, subagents, IDE integration, browser automation, or cloud/runtime surfaces.
+- Use reference implementations only for product behavior, architecture ideas, and evaluation design. Do not fork, vendor, or copy source from referenced coding-agent projects.
+- Keep the TUI replaceable. Core state transitions, protocol events, approvals, diffs, and trace data belong in Rust-side services and protocols, not in UI-only code.
+- Normalize provider differences behind the provider layer. Native tool calls and text-fallback tool calls should become one internal representation; vendor-specific formats should not leak into core logic.
+- Route file operations through the VFS design: workspace-root path normalization, traversal checks, staged writes, diff generation, stale-edit detection, and atomic apply where possible.
+- Route shell execution through sandbox-lite: selected workspace cwd, timeout, environment scrubbing, output capture/limits, network gating, and policy approval for risky commands.
+- Keep policy decisions centralized in `kqode-policy`. Non-TTY/headless flows should fail closed when an operation needs fresh approval.
+- Tool results should separate execution success from loop control with the documented shape: `success`, `should_continue`, `summary`, `content`, optional `error_kind`, and optional user-facing `display`.
+- Store replayable truth in append-only local JSONL session logs; use SQLite as an index for sessions, turns, tool calls, costs, todos, checkpoints, eval runs, and badcases.
+- Build model context from bounded fragments with source, token estimate, priority, expiry/persistence, and trace citation. Do not add unbounded repo dumps to prompt context.
+- Every meaningful coding task should end with a reviewable diff, check results, and final summary, and should produce trace evidence for model calls, tool calls, approvals, diffs, costs, and outcome.
+- Start evaluation with deterministic harness tests before provider or benchmark tests. The first golden tasks should dogfood KQode on this repository.
 
 ## Commit workflow
 
