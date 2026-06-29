@@ -1,0 +1,8 @@
+{
+  "label": "U1-研发前后端脚手架",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "KQode U1 阶段的 Rust 项目、Ink TUI、xtask 自动化和阶段总结。"
+  }
+}
