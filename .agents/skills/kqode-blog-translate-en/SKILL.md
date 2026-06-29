@@ -30,5 +30,6 @@ python .agents/skills/kqode-blog-translate-en/scripts/list_translation_targets.p
 
 - Use clear tutorial English, not literal word-for-word translation.
 - Keep product terms stable: KQode, Rust, RustRover, Cargo, Rustup, Coding Agent, agent runtime, agent harness, TUI.
+- When editing Chinese source docs as part of translation prep or sync, keep spaces on both sides of English words, acronyms, and product names when adjacent to Chinese characters.
 - Keep the default blog Chinese; never overwrite `blog/docs` with English text.
 - If a Chinese doc references shared images under `blog/docs/images/...`, keep the same relative Markdown link in the English doc when the relative depth is the same. Adjust only when the preserved structure changes the relative path.
