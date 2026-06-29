@@ -1,4 +1,5 @@
 import { atom } from 'jotai';
+import type { BackendClient } from '@libs/backend/backendClient.js';
 import { countBodyRows, DEFAULT_BODY_ENTRIES } from '@libs/tui/bodyRows.js';
 import type { BodyEntry } from '@libs/tui/bodyRows.js';
 import { countCwdRows } from '@libs/tui/cwdLine.js';
@@ -12,7 +13,7 @@ export type HomeScreenConfig = {
   bodyEntries?: readonly BodyEntry[];
   columns: number;
   rows: number;
-  onPromptSubmit: (prompt: string) => void;
+  backendClient?: BackendClient;
 };
 
 export type HomeScreenOptions = {
@@ -23,7 +24,7 @@ export type HomeScreenOptions = {
   bodyEntries?: readonly BodyEntry[];
   columns?: number;
   rows?: number;
-  onPromptSubmit?: (prompt: string) => void;
+  backendClient?: BackendClient;
 };
 
 export const DEFAULT_MODEL_LABEL = 'GPT-5.5';
@@ -33,8 +34,6 @@ export const BODY_CWD_GAP_ROWS = 1;
 const COMPOSER_BACKGROUND_PADDING_ROWS = 2;
 const COMPOSER_ERROR_RESERVE_ROWS = 1;
 
-export const noopPromptSubmit = () => {};
-
 export function createHomeScreenConfig({
   productVersion,
   workspaceCwd,
@@ -43,7 +42,7 @@ export function createHomeScreenConfig({
   bodyEntries,
   columns = DEFAULT_COLUMNS,
   rows = DEFAULT_ROWS,
-  onPromptSubmit = noopPromptSubmit
+  backendClient
 }: HomeScreenOptions): HomeScreenConfig {
   return {
     productVersion,
@@ -53,7 +52,7 @@ export function createHomeScreenConfig({
     bodyEntries,
     columns,
     rows,
-    onPromptSubmit
+    backendClient
   };
 }
 
@@ -62,8 +61,7 @@ export const homeScreenConfigAtom = atom<HomeScreenConfig>({
   workspaceCwd: '',
   modelLabel: DEFAULT_MODEL_LABEL,
   columns: DEFAULT_COLUMNS,
-  rows: DEFAULT_ROWS,
-  onPromptSubmit: noopPromptSubmit
+  rows: DEFAULT_ROWS
 });
 
 export const bodyScrollOffsetRowsAtom = atom(0);
@@ -127,13 +125,6 @@ export const composerTopAtom = atom((get) => {
   // `rows` is a count while Ink cursor coordinates are zero-based; subtract the
   // status row plus the composer height to get the first composer text row.
   return config.rows - 1 - composerRows;
-});
-
-export const submitPromptAtom = atom(null, (get, set, prompt: string) => {
-  const config = get(homeScreenConfigAtom);
-  set(submittedPromptEntriesAtom, (current) => [...current, { kind: 'prompt', text: prompt }]);
-  set(bodyScrollOffsetRowsAtom, 0);
-  config.onPromptSubmit(prompt);
 });
 
 export const scrollBodyByRowsAtom = atom(null, (get, set, deltaRows: number) => {

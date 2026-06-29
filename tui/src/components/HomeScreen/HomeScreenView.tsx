@@ -20,9 +20,9 @@ import {
   displayedBodyEntriesAtom,
   homeScreenConfigAtom,
   layoutAtom,
-  scrollBodyByRowsAtom,
-  submitPromptAtom
+  scrollBodyByRowsAtom
 } from '@state/homeScreenAtoms.js';
+import { enqueuePromptAtom } from '@state/backendQueueAtoms.js';
 import { geminiDarkTheme } from '@theme/themeConfig.js';
 
 const MOUSE_WHEEL_SCROLL_ROWS = 3;
@@ -127,14 +127,14 @@ function HomeComposer() {
   const layout = useAtomValue(layoutAtom);
   const composerTop = useAtomValue(composerTopAtom);
   const setComposerRows = useSetAtom(composerRowsAtom);
-  const submitPrompt = useSetAtom(submitPromptAtom);
+  const enqueuePrompt = useSetAtom(enqueuePromptAtom);
 
   return (
     <PromptComposer
       columns={columns}
       cursorTop={composerTop}
       maxVisibleLines={layout.composerVisibleRows}
-      onSubmit={submitPrompt}
+      onSubmit={(prompt) => void enqueuePrompt(prompt)}
       onVisibleRowsChange={setComposerRows}
     />
   );

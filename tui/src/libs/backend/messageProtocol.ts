@@ -6,9 +6,6 @@ export const MESSAGE_SUBMIT_METHOD = 'kqode.message.submit';
 /** ACK text the first-slice Rust backend returns for a received prompt. */
 export const ACK_MESSAGE = 'ACK: message received';
 
-/** Decoded UTF-8 ceiling for backend/error output rendered in the body. */
-export const DISPLAY_OUTPUT_MAX_BYTES = 128 * 1024;
-
 /** Params for `kqode.message.submit`; intentionally text-only for this slice. */
 export type MessageSubmitParams = {
   text: string;
