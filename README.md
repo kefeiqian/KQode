@@ -86,5 +86,6 @@ cargo xtask blog-install
 cargo xtask blog-build
 cargo xtask blog-typecheck
 cargo xtask blog-serve
+cargo xtask blog-serve-en
 cargo xtask blog-preview
 ```

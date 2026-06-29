@@ -41,6 +41,16 @@ pub fn serve(repo_root: &Path) -> Result<(), String> {
     bun::run_in(&paths::blog_root(repo_root), &["run", "serve"])
 }
 
+/// Starts the English Docusaurus blog dev server with hot reload.
+///
+/// # Errors
+///
+/// Returns an error when dependencies cannot be installed or the dev server fails.
+pub fn serve_en(repo_root: &Path) -> Result<(), String> {
+    ensure_dependencies(repo_root)?;
+    bun::run_in(&paths::blog_root(repo_root), &["run", "serve:en"])
+}
+
 /// Serves a production build of the Docusaurus blog locally.
 ///
 /// # Errors
