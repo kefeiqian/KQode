@@ -8,7 +8,7 @@ import {
   StreamMessageReader,
   StreamMessageWriter
 } from 'vscode-jsonrpc/node';
-import { BackendErrorKind } from '@libs/backend/backendClient.js';
+import { BackendClientError, BackendErrorKind } from '@libs/backend/backendClient.js';
 import { launchSourceBackend, type LaunchedBackend } from '@libs/backend/backendProcess.js';
 import { ACK_MESSAGE, messageSubmitRequest } from '@libs/backend/messageProtocol.js';
 import type { MessageSubmitResult } from '@libs/backend/messageProtocol.js';
@@ -142,6 +142,26 @@ describe('createProcessBackendClient (fake backend)', () => {
     fake.emitExit();
     expect(client.getState()).toBe(BackendLifecycleState.Dead);
     client.dispose();
+  });
+
+  it('reclaims a backend launched after disposal during startup', async () => {
+    const fake = makeFakeBackend(ack);
+    let resolveLaunch: ((backend: LaunchedBackend) => void) | undefined;
+    const launch = vi.fn(
+      () =>
+        new Promise<LaunchedBackend>((resolve) => {
+          resolveLaunch = resolve;
+        })
+    );
+    const client = createProcessBackendClient({ launch });
+
+    const submit = client.submitMessage({ text: 'race' });
+    client.dispose();
+    resolveLaunch?.(fake.launched);
+
+    await expect(submit).rejects.toBeInstanceOf(BackendClientError);
+    expect(fake.disposed()).toBe(true);
+    expect(client.getState()).toBe(BackendLifecycleState.Dead);
   });
 });
 

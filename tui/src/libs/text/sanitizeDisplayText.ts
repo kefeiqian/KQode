@@ -29,6 +29,7 @@ function capUtf8(text: string, maxBytes: number): string {
     return text;
   }
 
-  // Decoding a truncated byte view drops any partial trailing code point.
+  // Decoding a truncated byte view replaces any partial trailing code point
+  // with U+FFFD, so the result never ends mid-sequence.
   return new TextDecoder('utf-8').decode(bytes.subarray(0, maxBytes));
 }

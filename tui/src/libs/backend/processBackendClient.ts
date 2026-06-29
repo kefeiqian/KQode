@@ -89,6 +89,18 @@ export function createProcessBackendClient({
       throw toLaunchError(error);
     }
 
+    // The client may have been disposed (or marked dead) while the launch was in
+    // flight. Only `dispose()` can change state during this window because no
+    // connection/exit listeners are wired yet; reclaim the process instead of
+    // resurrecting a backend nobody will dispose.
+    if (state !== BackendLifecycleState.Starting) {
+      backend.dispose();
+      throw new BackendClientError(
+        BackendErrorKind.Launch,
+        'backend launch was aborted before it became ready'
+      );
+    }
+
     const connection = createMessageConnection(
       new StreamMessageReader(backend.stdout),
       new StreamMessageWriter(backend.stdin)
