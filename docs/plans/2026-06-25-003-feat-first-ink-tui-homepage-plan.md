@@ -438,14 +438,16 @@ Each implementation unit is intended to be landed as one atomic commit-sized cha
 
 After each commit-sized unit lands, run code review on the completed unit, then pause for user review and wait for explicit consent before starting the next unit.
 
+- [ ] Review batching: after U2 and U3 land the static home screen and composer behavior, U4-U8 can be reviewed as one source-mode ACK integration batch because those units add the Rust backend mode, protocol wiring, guarded launcher, backend client, and submit/ACK UI integration.
+
 ### Implementation Gates
 
 | Gate | Goal | Required units | Explicitly excluded from the gate |
 |------|------|----------------|-----------------------------------|
-| G1. Source-mode homepage ACK | Prove AE1-AE3 with a local source-mode Ink UI and Rust ACK backend. This is the origin validation gate and must be runnable before persistence, standalone packaging, or release automation lands. | U1, U2, U3, U4, U5, U8, U9, U6 | SQLite sessions, `/resume`, repo memory, standalone executable, release archives, GitHub Release workflow |
-| G2. Durable session resume | Add SQLite persistence, `/resume`, restored transcript/context, and same-workspace session continuation after G1 works. | U11, U12 | Standalone executable and release automation |
-| G3. Local standalone executable | Package the working TUI + Rust backend into a local standalone executable after G1/G2 behavior is stable. | U7 | GitHub Release upload and package-manager registration |
-| G4. Release assets | Produce GitHub Release-ready archives/checksums and CI upload after the local standalone executable works. | U10, U13 | npm publish, Homebrew tap submission, winget submission, signing/notarization, auto-update |
+| G1. Source-mode homepage ACK | Prove AE1-AE3 with a local source-mode Ink UI and Rust ACK backend. This is the origin validation gate and must be runnable before persistence, standalone packaging, or release automation lands. | U1, U2, U3, U4, U5, U6, U7, U8 | SQLite sessions, `/resume`, repo memory, standalone executable, release archives, GitHub Release workflow |
+| G2. Durable session resume | Add SQLite persistence, `/resume`, restored transcript/context, and same-workspace session continuation after G1 works. | U9, U10 | Standalone executable and release automation |
+| G3. Local standalone executable | Package the working TUI + Rust backend into a local standalone executable after G1/G2 behavior is stable. | U11 | GitHub Release upload and package-manager registration |
+| G4. Release assets | Produce GitHub Release-ready archives/checksums and CI upload after the local standalone executable works. | U12, U13 | npm publish, Homebrew tap submission, winget submission, signing/notarization, auto-update |
 
 ### U1. Verify the Bun-powered nested Ink package scaffold
 
@@ -495,7 +497,112 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 ---
 
-### U2. Add the Rust JSON-RPC stdio backend mode
+### U2. Build the static home screen components
+**Goal:** Implement the Copilot CLI-style KQode home screen as composable Ink components with centralized theme tokens.
+
+**Requirements:** R1, R2, R3, R4, R5, R12, R13, R14, R18.
+
+**Origin trace:** Covers F1 and AE1.
+
+**Dependencies:** U1.
+
+**Approach:**
+- [x] Centralize GitHub/Gemini-inspired foreground colors plus message/input background tokens in `themeConfig`.
+- [x] Include an error red token and use it for frontend validation failures and backend failure messages.
+- [x] Use a `HomeScreenConfig` prop at the screen boundary, then move shared screen state through Jotai atoms so nested display components do not receive long prop chains.
+- [x] Render a visual composer slot/shell so the first-screen layout can be validated before interactive composer behavior lands.
+- [x] Render the bottom hints as inert muted affordances; they must not open command/help/mention behavior.
+- [x] Right-align or degrade the model label based on terminal width while keeping core prompt affordances visible.
+- [x] Support a practical minimum viewport of roughly 40 columns by 12 rows; below that, preserve the composer, cwd, and left hints first, then compact or hide model/version/logo detail.
+- [x] Treat the logo as KQode-inspired terminal art, not copied product source.
+- [x] Display the KQode product version from `repoRoot` metadata rather than the nested TUI package version.
+- [x] Display `workspaceCwd` as the command invocation directory, including when tests run the TUI from the dummy React app fixture, with home-relative formatting and an optional bracketed Git branch/status label.
+- [x] Keep message background rendering internal and Gemini-inspired: body prompt blocks use half-line `▄`/`▀` rows, while the composer uses row background without changing vertical row accounting.
+- [x] Render body entries as typed transcript rows (`info`, `prompt`, `pending`, `success`, `error`) with assistant/user markers, prompt message backgrounds, error coloring, and no synthetic gap rows between entries.
+- [x] Keep the body-to-cwd separator as exactly one blank row while assigning spare rows to the body spacer so cwd, composer, and status remain bottom-sticky with short or overflowing body content.
+- [x] Add bounded body scrolling state with newest output visible by default, a visual scrollbar only when content overflows, and PageUp/PageDown/mouse-wheel navigation while keeping bottom chrome pinned.
+
+**Patterns to follow:**
+- [x] `docs/kqode_architecture_spec.md` commits to Ink for the TUI; layout components should remain display-only.
+- [x] Keep `src/components` focused on `.tsx` component modules and move reusable layout/body/cwd/background helpers under `src/libs/tui`.
+- [x] Use Jotai for shared home-screen layout, scroll, composer-row, and submitted-prompt state while keeping leaf components focused on rendering and input wiring.
+- [x] `docs/brainstorms/2026-06-25-first-ink-tui-homepage-requirements.md` provides the visual wireframe and status labels.
+- [x] Gemini CLI background rendering is product-behavior reference only: copy the half-line block idea, not source.
+
+**Test scenarios:**
+- [x] Covers AE1. Happy path: initial render includes the logo, `KQode`, root product version, cwd line, prompt region, bottom hints (`/ commands`, `@ mention`, `? help`), and `GPT-5.5`.
+- [x] Covers AE1. Happy path: when launched from a copied dummy React workspace under `target/kqode-test-workspaces/`, the cwd line displays that copied workspace rather than `tui/`, the KQode repo root, or the committed fixture template.
+- [x] Covers AE1. Happy path: the first screen uses centralized GitHub/Gemini-inspired foreground tokens for foreground, muted text, accents, errors, and scrollbars.
+- [x] Happy path: the theme exposes an error red token for frontend/backend failure rendering.
+- [x] Happy path: body prompt background rendering uses full-width half-line block rows for submitted user messages.
+- [x] Happy path: composer row background renders without adding extra rows, so body height, cwd, composer, and status layout stay stable.
+- [x] Happy path: submitted user prompts are appended to the body as Gemini-style user message blocks and the composer remains available for the next prompt.
+- [x] Happy path: `workspaceCwd` is formatted relative to the user's home directory and can show a bracketed Git status label with branch and change flags.
+- [x] Happy path: body entries wrap without ellipses or gap rows, and multiline assistant/info entries are normalized before row budgeting.
+- [x] Happy path: body output can be scrolled with PageUp/PageDown and mouse wheel events, shows a scrollbar when overflowed, and keeps the status row pinned.
+- [x] Edge case: a long `workspaceCwd` soft-wraps without ellipses while the composer and status bar remain visible.
+- [x] Edge case: around 40 columns by 12 rows, the composer, `workspaceCwd`, and left-side status hints remain visible while lower-priority details compact or disappear.
+- [x] Edge case: short body content leaves cwd, composer, and status pinned to the terminal bottom rather than floating below the body.
+- [x] Edge case: a one-row body budget prioritizes actual content over hidden-output marker text.
+- [x] Edge case: rendered output remains readable when color styling is stripped by the test renderer.
+
+**Verification:**
+- [x] The first rendered frame feels like the intended KQode home screen and keeps future output space available.
+- [x] U2 is delivered by commit `dd15b678392eacc2ffcee88884eba18ae52c1236` and refined by commit `5432e018cb496e5f7359e69d47a2a7d1691c0794`, covering the home screen component split, shared Jotai state, body transcript rendering, bottom-sticky layout, git-aware cwd display, and scroll controls.
+
+---
+
+### U3. Implement composer input and wrapping behavior
+**Goal:** Add focused prompt entry that accepts typed text, visually wraps long input, and treats Enter as submit.
+
+**Requirements:** R4, R6, R7, R8, R12.
+
+**Origin trace:** Covers the input leg of F2 and AE2.
+
+**Dependencies:** U1, U2.
+
+**Approach:**
+- [x] Keep printable input, backspace/delete, cursor movement, Enter submit, modified-Enter newline insertion, and empty-submit behavior explicit in composer state.
+- [x] Use Ink wrapping for the first slice; only add a separate width utility if the component tests prove it is needed.
+- [x] Treat typed/pasted printable text as composer content, strip control characters from pasted input, and support authored newlines through modified Enter plus a backslash-then-Enter fallback.
+- [x] Block only empty or all-whitespace submits; preserve leading/trailing spaces for non-empty prompts.
+- [x] Enforce the 64 KiB prompt-size ceiling before submit with visible feedback instead of sending an over-limit JSON-RPC request.
+- [x] Keep slash, mention, help, and Tab behavior inert: `/`, `@`, and `?` are normal typed characters, and Tab should not trigger navigation.
+- [x] On submit, emit an exact prompt snapshot through the home-screen submit atom, append it to the body, and clear the composer so further typing can continue while App owns later backend queue state.
+- [x] Cap the composer to a small visible height and scroll/clip to the latest prompt lines so long prompts do not push the cwd and status bar off screen.
+- [x] Render composer rows with the internal input background when color/background rendering is enabled, but do not add extra top/bottom padding rows to the composer.
+- [x] Keep composer cursor placement tied to the active text row; single-line, authored multiline, and soft-wrapped prompts must not place the cursor on the cwd row or one row above the text.
+- [x] Ignore SGR mouse tracking input in the composer so body scroll events are not inserted as prompt text.
+
+**Patterns to follow:**
+- [x] External Ink guidance favors `useInput` for keyboard handling and component/reducer tests for deterministic behavior.
+- [x] The origin requirement defines base Enter as submit; authored newline support is limited to modified Enter sequences and the backslash fallback.
+- [x] Keep shared composer state in Jotai atoms and colocate composer-specific rendering, cursor, input, constants, and visible-text helpers under `PromptComposer/`.
+
+**Test scenarios:**
+- [x] Covers AE2. Happy path: typing a long prompt preserves all content and wraps within constrained width.
+- [x] Happy path: authored newlines remain visible, continuation lines align under the prompt text, and modified Enter variants insert `\n` without submitting.
+- [x] Happy path: printable characters append to the composer and backspace removes the last character.
+- [x] Happy path: left and right arrows move the input cursor for middle insertion and deletion.
+- [x] Edge case: pressing Enter with empty or whitespace-only content does not submit.
+- [x] Edge case: non-empty text with leading/trailing spaces submits the exact composer snapshot.
+- [x] Edge case: `/`, `@`, and `?` remain typed content rather than opening UI modes.
+- [x] Edge case: Tab does not navigate or mutate the prompt in this slice.
+- [x] Edge case: typed/pasted printable text is retained as composer content while control characters and mouse tracking sequences are ignored.
+- [x] Edge case: a trailing backslash followed by Enter becomes an authored newline fallback without submitting.
+- [x] Edge case: after submit, the composer clears and accepts new input while the previous prompt is being handled by App queue state.
+- [x] Edge case: content beyond the composer height cap remains in state and submits exactly, while the visible composer keeps the latest lines in view.
+- [x] Error path: over-limit input is blocked before backend submit with visible composer/body feedback.
+- [x] Edge case: cursor placement is verified for single-line, authored multiline, soft-wrapped composer text, and authored middle positions.
+- [x] Edge case: composer background color preserves existing visible row counts and bottom-sticky layout.
+
+**Verification:**
+- [x] The composer remains focused and usable as a prompt bar, with Enter reserved for submission.
+- [x] U3 is delivered by commit `dd15b678392eacc2ffcee88884eba18ae52c1236` and refined by commit `5432e018cb496e5f7359e69d47a2a7d1691c0794`, covering Jotai composer atoms, focused component modules, prompt wrapping, authored newline support, cursor movement, mouse-input filtering, validation feedback, and exact submit snapshots.
+
+---
+
+### U4. Add the Rust JSON-RPC stdio backend mode
 **Goal:** Replace the starter-only Rust binary behavior with a minimal hidden backend mode that runs a JSON-RPC stdio loop, handles message submit requests, returns ACK responses, and stays separate from future agent behavior.
 
 **Requirements:** R9, R11. **Technical constraints:** T1.
@@ -509,7 +616,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Approach:**
 - [x] Add a small internal JSON-RPC stdio backend mode selected by a command-line argument, with no model/provider/tool logic.
 - [x] Use `lsp-server` to read JSON-RPC requests from stdin and write JSON-RPC responses to stdout.
-- [x] Support only the message-submit method in this unit; do not add a daemon, tool dispatcher, or streaming assistant loop. U11 adds the separate first-slice session persistence methods.
+- [x] Support only the message-submit method in this unit; do not add a daemon, tool dispatcher, or streaming assistant loop. U9 adds the separate first-slice session persistence methods.
 - [x] Define JSON-RPC method/event names, response status strings, error kinds, and non-obvious numeric limits as enums or named constants in `src/protocol.rs`; do not scatter hard-coded strings like `kqode.message.submit` or magic numbers through handlers/tests.
 - [x] Treat malformed transport/framing input as a fatal transport error handled by the backend client lifecycle; return JSON-RPC errors through the library response path for valid requests with unsupported methods or invalid params.
 - [x] Preserve a harmless default path for running the binary without the backend mode.
@@ -517,7 +624,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 - [x] Configure `Cargo.toml` so the binary target uses root `main.rs`; keep that file as argument dispatch only. Put backend loop and protocol types in modules under `src/` when implementation would otherwise push a file above roughly 200 lines.
 - [x] Use the hidden backend argument `--__kqode-json-rpc-backend`; reject extra backend-mode arguments and unsupported non-backend arguments with visible stderr.
 - [x] Expose `kqode` as both the library crate and binary target so tests can import protocol constants and spawn the compiled `CARGO_BIN_EXE_kqode` binary.
-- [x] Keep U2 message-submit params intentionally text-only (`{ "text": string }`) with unknown fields denied; session-bound params land with the later session-persistence methods.
+- [x] Keep U4 message-submit params intentionally text-only (`{ "text": string }`) with unknown fields denied; session-bound params land with the later session-persistence methods.
 - [x] Handle only JSON-RPC request frames in the backend loop: ignore notifications, return method/params errors for request-level failures, and treat unexpected JSON-RPC responses as fatal transport errors.
 
 **Patterns to follow:**
@@ -525,7 +632,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 - [x] Keep this in the current single package; do not create the future crate workspace as part of this slice.
 - [x] Prefer focused modules/components/helpers over monolithic files; no source file in this slice should exceed roughly 200 lines unless there is a clear reason documented in review.
 - [x] Follow the project constants/enums rule: protocol names and magic values belong in enums/constants that tests import, not in repeated string/number literals.
-- [x] Keep U2 dependency additions limited to `lsp-server`, `serde`, and `serde_json`, with `Cargo.lock` updated by the same unit.
+- [x] Keep U4 dependency additions limited to `lsp-server`, `serde`, and `serde_json`, with `Cargo.lock` updated by the same unit.
 
 **Test scenarios:**
 - [x] Happy path: a JSON-RPC `kqode.message.submit` request containing `hello from tui` returns a success response with `message: "ACK: message received"` and `receivedText: "hello from tui"`.
@@ -542,94 +649,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Verification:**
 - [x] The backend mode provides a deterministic local JSON-RPC ACK proof and does not invoke provider, agent, or tool behavior.
-- [x] U2 is delivered by commit `f86f87f31e74ef3f27cd7ff22b70665e02b66b2e`, covering `main.rs`, `src/backend.rs`, `src/protocol.rs`, `src/lib.rs`, JSON-RPC dependencies, and compiled-binary integration tests.
-
----
-
-### U3. Build the static home screen components
-**Goal:** Implement the Copilot CLI-style KQode home screen as composable Ink components with centralized theme tokens.
-
-**Requirements:** R1, R2, R3, R4, R5, R12, R13, R14, R18.
-
-**Origin trace:** Covers F1 and AE1.
-
-**Dependencies:** U1.
-
-**Approach:**
-- [x] Centralize GitHub/Gemini-inspired foreground colors plus message/input background tokens in `themeConfig`.
-- [x] Include an error red token and use it for frontend validation failures and backend failure messages.
-- [x] Use component props for version, `workspaceCwd`, model label, body output, and pending/error state.
-- [x] Render a visual composer slot/shell so the first-screen layout can be validated before interactive composer behavior lands.
-- [x] Render the bottom hints as inert muted affordances; they must not open command/help/mention behavior.
-- [x] Right-align or degrade the model label based on terminal width while keeping core prompt affordances visible.
-- [x] Support a practical minimum viewport of roughly 40 columns by 12 rows; below that, preserve the composer, cwd, and left hints first, then compact or hide model/version/logo detail.
-- [x] Treat the logo as KQode-inspired terminal art, not copied product source.
-- [x] Display the KQode product version from `repoRoot` metadata rather than the nested TUI package version.
-- [x] Display `workspaceCwd` as the command invocation directory, including when tests run the TUI from the dummy React app fixture.
-- [x] Keep optional message background rendering internal and Gemini-inspired: body prompt blocks may use half-line `▄`/`▀` rows, while the composer uses row background without changing vertical row accounting.
-
-**Patterns to follow:**
-- [ ] `docs/kqode_architecture_spec.md` commits to Ink for the TUI; layout components should remain display-only.
-- [x] `docs/brainstorms/2026-06-25-first-ink-tui-homepage-requirements.md` provides the visual wireframe and status labels.
-- [x] Gemini CLI background rendering is product-behavior reference only: copy the half-line block idea, not source.
-
-**Test scenarios:**
-- [x] Covers AE1. Happy path: initial render includes the logo, `KQode`, root product version, cwd line, prompt region, bottom hints (`/ commands`, `@ mention`, `? help`), and `GPT-5.5`.
-- [x] Covers AE1. Happy path: when launched from a copied dummy React workspace under `target/kqode-test-workspaces/`, the cwd line displays that copied workspace rather than `tui/`, the KQode repo root, or the committed fixture template.
-- [x] Covers AE1. Happy path: the first screen uses centralized GitHub/Gemini-inspired foreground tokens for foreground, muted text, accents, errors, and scrollbars.
-- [x] Happy path: the theme exposes an error red token for frontend/backend failure rendering.
-- [x] Happy path: optional body prompt background rendering uses full-width half-line block rows and remains disabled by default in normal body rendering.
-- [x] Happy path: composer row background renders without adding extra rows, so body height, cwd, composer, and status layout stay stable.
-- [x] Edge case: a long `workspaceCwd` is truncated or compacted from the left while the composer and status bar remain visible.
-- [x] Edge case: around 40 columns by 12 rows, the composer, `workspaceCwd`, and left-side status hints remain visible while lower-priority details compact or disappear.
-- [x] Edge case: rendered output remains readable when color styling is stripped by the test renderer.
-
-**Verification:**
-- [x] The first rendered frame feels like the intended KQode home screen and keeps future output space available.
-
----
-
-### U4. Implement composer input and wrapping behavior
-**Goal:** Add focused prompt entry that accepts typed text, visually wraps long input, and treats Enter as submit.
-
-**Requirements:** R4, R6, R7, R8, R12.
-
-**Origin trace:** Covers the input leg of F2 and AE2.
-
-**Dependencies:** U1, U3.
-
-**Approach:**
-- [x] Keep printable input, backspace/delete, Enter submit, and empty-submit behavior explicit in composer state.
-- [x] Use Ink wrapping for the first slice; only add a separate width utility if the component tests prove it is needed.
-- [x] Treat typed/pasted printable text as composer content, but do not require bracketed-paste or real newline editing support in this slice.
-- [x] Block only empty or all-whitespace submits; preserve leading/trailing spaces for non-empty prompts.
-- [x] Enforce the 64 KiB prompt-size ceiling before submit with visible feedback instead of sending an over-limit JSON-RPC request.
-- [x] Keep slash, mention, help, and Tab behavior inert: `/`, `@`, and `?` are normal typed characters, and Tab should not trigger navigation.
-- [x] On submit, emit an exact prompt snapshot to App and clear the composer so further typing can continue while App owns backend queue state.
-- [x] Cap the composer to a small visible height and scroll/clip to the latest prompt lines so long prompts do not push the cwd and status bar off screen.
-- [x] Render composer rows with the internal input background when color/background rendering is enabled, but do not add extra top/bottom padding rows to the composer.
-- [x] Keep composer cursor placement tied to the active text row; single-line, authored multiline, and soft-wrapped prompts must not place the cursor on the cwd row or one row above the text.
-
-**Patterns to follow:**
-- [x] External Ink guidance favors `useInput` for keyboard handling and component/reducer tests for deterministic behavior.
-- [x] The origin requirement defines multiline as wrapping behavior and Enter as submit.
-
-**Test scenarios:**
-- [x] Covers AE2. Happy path: typing a long prompt preserves all content and wraps within constrained width.
-- [x] Happy path: printable characters append to the composer and backspace removes the last character.
-- [x] Edge case: pressing Enter with empty or whitespace-only content does not submit.
-- [x] Edge case: non-empty text with leading/trailing spaces submits the exact composer snapshot.
-- [x] Edge case: `/`, `@`, and `?` remain typed content rather than opening UI modes.
-- [x] Edge case: Tab does not navigate or mutate the prompt in this slice.
-- [x] Edge case: typed/pasted printable text is retained as composer content; pasted newline preservation is not required for the interactive TUI path.
-- [x] Edge case: after submit, the composer clears and accepts new input while the previous prompt is being handled by App queue state.
-- [x] Edge case: content beyond the composer height cap remains in state and submits exactly, while the visible composer keeps the latest lines in view.
-- [x] Error path: over-limit input is blocked before backend submit with visible composer/body feedback.
-- [x] Edge case: cursor placement is verified for single-line, authored multiline, and soft-wrapped composer text.
-- [x] Edge case: composer background color preserves existing visible row counts and bottom-sticky layout.
-
-**Verification:**
-- [x] The composer remains focused and usable as a prompt bar, with Enter reserved for submission.
+- [x] U4 is delivered by commit `f86f87f31e74ef3f27cd7ff22b70665e02b66b2e`, covering `main.rs`, `src/backend.rs`, `src/protocol.rs`, `src/lib.rs`, JSON-RPC dependencies, and compiled-binary integration tests.
 
 ---
 
@@ -641,7 +661,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Origin trace:** Supports the protocol leg of F2 and is a prerequisite for AE3.
 
-**Dependencies:** U1, U2.
+**Dependencies:** U1, U4.
 
 **Approach:**
 - [ ] Add `vscode-jsonrpc` to the TUI package dependencies.
@@ -663,7 +683,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 ---
 
-### U8. Implement the guarded source backend process launcher
+### U6. Implement the guarded source backend process launcher
 
 **Goal:** Add the source-mode backend process launcher with cwd/root handling, environment hardening, timeout, and process-tree cleanup.
 
@@ -671,7 +691,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Origin trace:** Supports the backend process leg of F2 and is a prerequisite for AE3.
 
-**Dependencies:** U1, U2, U5.
+**Dependencies:** U1, U4, U5.
 
 **Approach:**
 - [ ] Add `tree-kill` and related typings if needed.
@@ -706,18 +726,18 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 ---
 
-### U9. Implement the process JSON-RPC backend client
+### U7. Implement the process JSON-RPC backend client
 **Goal:** Connect the backend process launcher to `vscode-jsonrpc`, send message-submit requests, parse ACK responses, and own backend connection lifecycle.
 
 **Requirements:** R8, R9, R11, R12. **Technical constraints:** T1.
 
 **Origin trace:** Covers the client-side backend leg of F2 and is a prerequisite for AE3.
 
-**Dependencies:** U5, U8.
+**Dependencies:** U5, U6.
 
 **Approach:**
 - [ ] Start one backend process for the TUI session and create a `vscode-jsonrpc` connection over its stdio pipes.
-- [ ] Expose `message.submit` through the narrow backend-client interface for G1. U11/U12 extend the interface with `session.start`, `session.list`, and `session.resume`.
+- [ ] Expose `message.submit` through the narrow backend-client interface for G1. U9/U10 extend the interface with `session.start`, `session.list`, and `session.resume`.
 - [ ] Model backend lifecycle states as `starting`, `ready`, `closing`, and `dead`.
 - [ ] Recoverable JSON-RPC method errors keep the process alive; fatal process/transport errors dispose the connection and mark it `dead`.
 - [ ] On the next non-empty submit after `dead`, respawn the backend, restore the active session from SQLite, and continue from persisted state. Do not restart silently, do not provide a separate retry action, and do not automatically replay interrupted in-flight requests.
@@ -737,14 +757,60 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 ---
 
-### U11. Add the SQLite session store and session JSON-RPC methods
+### U8. Wire App submit state and ACK output
+**Goal:** Connect the composer, backend client, and scrollable body pane so Enter appends user prompts immediately, queues consecutive submits, and displays the matching Rust ACK/error for each prompt.
+
+**Requirements:** R8, R9, R10, R11, R12, R19, R20. **Technical constraints:** T1.
+
+**Origin trace:** Covers F2 and AE3 end-to-end.
+
+**Dependencies:** U2, U3, U5, U7.
+
+**Approach:**
+- [ ] Inject the backend client into App state so tests can use a mock and production can use the process client.
+- [ ] For G1, accept prompt submissions without durable session state. U9/U10 later add active `sessionId` state and transcript rehydration.
+- [ ] Use a submitted prompt snapshot so the backend receives exactly what the composer submitted.
+- [ ] Append every submitted user prompt to the body immediately and clear/refocus the composer so the next prompt can be typed while the backend is busy.
+- [ ] Maintain an in-memory FIFO queue of submitted prompt snapshots; send only one backend request at a time and start the next queued request after the current request returns ACK or error.
+- [ ] Define body states explicitly: initial backend explanation/tip, active user prompt without a marker, queued user prompt with `(pending)`, success output labeled as a Rust backend ACK, and red error output.
+- [ ] Render the main body as a scrollview-like transcript that appends user prompt, ACK/status/error entries for this slice.
+- [ ] Render only sanitized display text for user prompts, backend ACK payloads, backend errors, validation errors, and restored transcript entries. Persisted raw text must not be passed directly to Ink `Text`.
+- [ ] On success, append or attach the matching ACK message for the active prompt.
+- [ ] On failure or timeout, show a visible red body error for the active prompt and keep later queued prompts in order unless the backend lifecycle is fatal.
+- [ ] Keep G1 transcript state in memory. U9/U10 later persist transcript/context changes through the backend client.
+- [ ] Keep R11 concrete: App submit must use only the backend client seam, and display components must not import backend/process logic.
+- [ ] Leave README terminal-run documentation for the standalone executable unit after the directly-callable artifact exists.
+
+**Patterns to follow:**
+- [ ] Layout components stay display-only; App owns cross-component state and backend calls.
+- [ ] Scope boundaries keep slash commands other than `/resume`, model selection, tools, and provider calls unavailable.
+
+**Test scenarios:**
+- [ ] Covers AE3. Happy path: typing `hello from tui` and pressing Enter appends the user prompt immediately, sends it through the backend client, and appends `ACK: message received` in the body scrollview.
+- [ ] Covers AE3. Integration: Unicode and leading/trailing spaces are preserved in the backend result's `receivedText`.
+- [ ] Happy path: submitting three prompts quickly displays all three user prompts immediately, marks only the second and third as `(pending)`, sends requests to the backend one at a time, and removes each `(pending)` marker when that prompt becomes active.
+- [ ] Happy path: successful output is visibly labeled as a Rust JSON-RPC ACK / no-model-call proof.
+- [ ] Edge case: empty or all-whitespace Enter does not call the backend client and does not change body output.
+- [ ] Edge case: pressing Enter while a request is active queues the new prompt rather than dropping it or sending concurrently.
+- [ ] Edge case: successful submit clears the composer for the next prompt and leaves the matching prompt/ACK pair visible in the scrollview.
+- [ ] Error path: backend failure displays a visible red error for the matching prompt and does not silently mark queued prompts as successful.
+- [ ] Error path: frontend validation failures such as over-limit prompt input render in the same theme error red.
+- [ ] Error path: prompts or backend errors containing ESC, ANSI CSI, OSC, carriage returns, backspaces, or other terminal-control characters render as safe escaped text and do not clear the screen, move the cursor, set clipboard content, overwrite lines, or change styling unexpectedly.
+- [ ] Error path: display components have no imports or props that expose provider, tool, session, or model-call behavior.
+
+**Verification:**
+- [ ] The first interaction proves "Ink sends text, Rust acknowledges receipt, TUI displays the ACK" without invoking any provider, agent loop, or tool.
+
+---
+
+### U9. Add the SQLite session store and session JSON-RPC methods
 **Goal:** Add a Rust-owned local SQLite session store under `~/.kqcode/` and expose narrow JSON-RPC methods for starting, recording, listing, and resuming first-slice sessions.
 
 **Requirements:** R21, R22, R23, R24, R25, R26, R27. **Technical constraints:** T1.
 
 **Origin trace:** Extends F2 and AE3 so the ACK demo is durable and resumable instead of memory-only.
 
-**Dependencies:** U2, U5.
+**Dependencies:** U4, U5.
 
 **Approach:**
 - [ ] Add SQLite storage under the Rust backend, not under display components or TUI-only state.
@@ -781,60 +847,14 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 ---
 
-### U6. Wire App submit state and ACK output
-**Goal:** Connect the composer, backend client, and scrollable body pane so Enter appends user prompts immediately, queues consecutive submits, and displays the matching Rust ACK/error for each prompt.
-
-**Requirements:** R8, R9, R10, R11, R12, R19, R20. **Technical constraints:** T1.
-
-**Origin trace:** Covers F2 and AE3 end-to-end.
-
-**Dependencies:** U3, U4, U5, U9.
-
-**Approach:**
-- [ ] Inject the backend client into App state so tests can use a mock and production can use the process client.
-- [ ] For G1, accept prompt submissions without durable session state. U11/U12 later add active `sessionId` state and transcript rehydration.
-- [ ] Use a submitted prompt snapshot so the backend receives exactly what the composer submitted.
-- [ ] Append every submitted user prompt to the body immediately and clear/refocus the composer so the next prompt can be typed while the backend is busy.
-- [ ] Maintain an in-memory FIFO queue of submitted prompt snapshots; send only one backend request at a time and start the next queued request after the current request returns ACK or error.
-- [ ] Define body states explicitly: initial backend explanation/tip, active user prompt without a marker, queued user prompt with `(pending)`, success output labeled as a Rust backend ACK, and red error output.
-- [ ] Render the main body as a scrollview-like transcript that appends user prompt, ACK/status/error entries for this slice.
-- [ ] Render only sanitized display text for user prompts, backend ACK payloads, backend errors, validation errors, and restored transcript entries. Persisted raw text must not be passed directly to Ink `Text`.
-- [ ] On success, append or attach the matching ACK message for the active prompt.
-- [ ] On failure or timeout, show a visible red body error for the active prompt and keep later queued prompts in order unless the backend lifecycle is fatal.
-- [ ] Keep G1 transcript state in memory. U11/U12 later persist transcript/context changes through the backend client.
-- [ ] Keep R11 concrete: App submit must use only the backend client seam, and display components must not import backend/process logic.
-- [ ] Leave README terminal-run documentation for the standalone executable unit after the directly-callable artifact exists.
-
-**Patterns to follow:**
-- [ ] Layout components stay display-only; App owns cross-component state and backend calls.
-- [ ] Scope boundaries keep slash commands other than `/resume`, model selection, tools, and provider calls unavailable.
-
-**Test scenarios:**
-- [ ] Covers AE3. Happy path: typing `hello from tui` and pressing Enter appends the user prompt immediately, sends it through the backend client, and appends `ACK: message received` in the body scrollview.
-- [ ] Covers AE3. Integration: Unicode and leading/trailing spaces are preserved in the backend result's `receivedText`.
-- [ ] Happy path: submitting three prompts quickly displays all three user prompts immediately, marks only the second and third as `(pending)`, sends requests to the backend one at a time, and removes each `(pending)` marker when that prompt becomes active.
-- [ ] Happy path: successful output is visibly labeled as a Rust JSON-RPC ACK / no-model-call proof.
-- [ ] Edge case: empty or all-whitespace Enter does not call the backend client and does not change body output.
-- [ ] Edge case: pressing Enter while a request is active queues the new prompt rather than dropping it or sending concurrently.
-- [ ] Edge case: successful submit clears the composer for the next prompt and leaves the matching prompt/ACK pair visible in the scrollview.
-- [ ] Error path: backend failure displays a visible red error for the matching prompt and does not silently mark queued prompts as successful.
-- [ ] Error path: frontend validation failures such as over-limit prompt input render in the same theme error red.
-- [ ] Error path: prompts or backend errors containing ESC, ANSI CSI, OSC, carriage returns, backspaces, or other terminal-control characters render as safe escaped text and do not clear the screen, move the cursor, set clipboard content, overwrite lines, or change styling unexpectedly.
-- [ ] Error path: display components have no imports or props that expose provider, tool, session, or model-call behavior.
-
-**Verification:**
-- [ ] The first interaction proves "Ink sends text, Rust acknowledges receipt, TUI displays the ACK" without invoking any provider, agent loop, or tool.
-
----
-
-### U12. Implement `/resume` session picker and restore flow
+### U10. Implement `/resume` session picker and restore flow
 **Goal:** Make `/resume` the first active slash command: list persisted sessions, let the user choose one, restore transcript/context, and continue appending prompts to that session.
 
 **Requirements:** R10, R12, R21, R22, R23, R24, R25, R26, R27, R29.
 
 **Origin trace:** Extends F1/F2 by adding durable session selection and continuation.
 
-**Dependencies:** U3, U4, U6, U11.
+**Dependencies:** U2, U3, U8, U9.
 
 **Approach:**
 - [ ] Treat `/resume` as a command only when the composer content is exactly `/resume` after trimming. Other slash-prefixed text remains normal prompt content for this slice.
@@ -882,14 +902,14 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 ---
 
-### U7. Create the standalone `kqode` executable
+### U11. Create the standalone `kqode` executable
 **Goal:** Add a local executable build that packages the Ink frontend and a prebuilt Rust backend into a true standalone native executable named `kqode`.
 
 **Requirements:** R11, R12, R15. **Technical constraints:** T1, T2, T3.
 
 **Origin trace:** Supports AE3 by making the end-to-end ACK proof runnable from the generated standalone executable.
 
-**Dependencies:** U2, U6, U8, U9, U11, U12.
+**Dependencies:** U4, U6, U7, U8, U9, U10.
 
 **Approach:**
 - [ ] Use Rollup to bundle the TypeScript Ink entrypoint into `tui/dist/main.js` as the Node SEA input, with an explicit Node target and external/native module handling.
@@ -904,7 +924,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 - [ ] Document the direct terminal invocation path for `tui/dist/kqode[.exe]` and clarify that it still only runs local JSON-RPC ACK behavior.
 
 **Patterns to follow:**
-- [ ] Keep executable packaging local and first-slice focused; channel staging is handled separately in U10, while registry publishing, signing/notarization, auto-update, and daemon service work remain deferred.
+- [ ] Keep executable packaging local and first-slice focused; channel staging is handled separately in U12, while registry publishing, signing/notarization, auto-update, and daemon service work remain deferred.
 - [ ] Preserve the Rust-core/TypeScript-surface boundary: the standalone executable packages both artifacts but does not move core behavior into TypeScript.
 
 **Test scenarios:**
@@ -921,7 +941,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 ---
 
-### U10. Prepare cross-platform distribution artifacts
+### U12. Prepare cross-platform distribution artifacts
 
 **Goal:** Add channel-ready packaging around the standalone executable so the same runtime artifact can be distributed by direct download, npm global install, Homebrew, and winget.
 
@@ -929,7 +949,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Origin trace:** Extends AE3 by proving the packaged ACK demo has a user-installable artifact shape, not only a developer-local build.
 
-**Dependencies:** U7.
+**Dependencies:** U11.
 
 **Approach:**
 - [ ] Define the first supported target matrix for the standalone executable: macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64. Linux libc split can be refined during implementation if Node SEA or Rust backend constraints require separate GNU/musl artifacts.
@@ -978,13 +998,13 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Requirements:** R15, R16, R28. **Technical constraints:** T2, T3, T4.
 
-**Origin trace:** Turns U10's local release artifacts into direct-download GitHub Release assets for downstream npm/Homebrew/winget registration.
+**Origin trace:** Turns U12's local release artifacts into direct-download GitHub Release assets for downstream npm/Homebrew/winget registration.
 
-**Dependencies:** U7, U10.
+**Dependencies:** U11, U12.
 
 **Approach:**
 - [ ] Trigger on version tags such as `v*` and allow manual `workflow_dispatch` for release candidates.
-- [ ] Build the standalone executable matrix for macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64 using the same `cargo xtask package-release` path as local U10.
+- [ ] Build the standalone executable matrix for macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64 using the same `cargo xtask package-release` path as local U12.
 - [ ] Use a two-stage workflow: matrix jobs build and upload workflow artifacts only; one final release job downloads all matrix artifacts, verifies the complete manifest/checksums, creates or updates the GitHub Release idempotently, and uploads per-target archives, per-target `.sha256` files, and aggregate `checksums.txt`.
 - [ ] Keep this unsigned/not-notarized for the first slice unless implementation discovers platform requirements that block execution entirely.
 - [ ] Add minimum release authenticity controls: protected release tags/environments where available, explicit least-privilege workflow permissions, pinned third-party actions by version or SHA, GitHub artifact attestations or signed checksums when available, and verification instructions in the registration guide.
@@ -1016,7 +1036,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 |-------------------|------------------|
 | AE1 first render | `tui/src/components/__tests__/HomeScreen.test.tsx` verifies identity, version, cwd, prompt region, hints, model label, centralized GitHub/Gemini-inspired theme token usage, and resilient layout. |
 | AE2 composer wrapping | `tui/src/components/__tests__/PromptComposer.test.tsx` and `tui/src/state/__tests__/composerReducer.test.ts` verify typing, wrapping preservation, inert hints, exact submit snapshots, empty-submit blocking, and post-submit composer clearing. |
-| AE3 submit-to-ACK | `tests/main.rs`, `tui/src/backend/__tests__/backendProcess.test.ts`, `tui/src/backend/__tests__/messageProtocol.test.ts`, `tui/src/backend/__tests__/processBackendClient.test.ts`, `tui/src/__tests__/App.submit.test.tsx`, the standalone-executable smoke path, and U10 release-staging checks verify Rust JSON-RPC ACK, guarded launcher behavior, library-backed message protocol helpers, process client behavior, App queue state, exact prompt preservation in `receivedText`, user-prompt transcript display, queued/pending markers, red failure display, direct `kqode` invocation, and channel-ready packaging around the same executable. T1/T2/T3/T4 are covered by the Rust, TypeScript, standalone-executable, and distribution-staging tests. |
+| AE3 submit-to-ACK | `tests/main.rs`, `tui/src/backend/__tests__/backendProcess.test.ts`, `tui/src/backend/__tests__/messageProtocol.test.ts`, `tui/src/backend/__tests__/processBackendClient.test.ts`, `tui/src/__tests__/App.submit.test.tsx`, the standalone-executable smoke path, and U12 release-staging checks verify Rust JSON-RPC ACK, guarded launcher behavior, library-backed message protocol helpers, process client behavior, App queue state, exact prompt preservation in `receivedText`, user-prompt transcript display, queued/pending markers, red failure display, direct `kqode` invocation, and channel-ready packaging around the same executable. T1/T2/T3/T4 are covered by the Rust, TypeScript, standalone-executable, and distribution-staging tests. |
 | Plan-added session resume | `tests/session_store.rs`, `tui/src/backend/__tests__/sessionProtocol.test.ts`, `tui/src/components/__tests__/ResumeSessionList.test.tsx`, `tui/src/state/__tests__/sessionTranscriptReducer.test.ts`, and App submit/resume tests verify SQLite session creation, transcript/context persistence, current-workspace session listing, `/resume` selection, different-workspace blocking, restored transcript display, and continuation in the selected session. |
 | GitHub release assets | `.github/workflows/release.yml` and release-script checks verify matrix artifact generation, checksums, and GitHub Release upload without npm/Homebrew/winget publishing. |
 
