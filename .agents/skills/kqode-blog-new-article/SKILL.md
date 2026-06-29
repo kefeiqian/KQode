@@ -36,6 +36,7 @@ python .agents/skills/kqode-blog-new-article/scripts/new_article.py "插入的�
 - Keep the frontmatter title human-facing, for example `title: 4. 新文章` or `title: 1.5. 插入的新文章`.
 - In Chinese docs, add spaces on both sides of English words, acronyms, and product names when adjacent to Chinese characters, including frontmatter titles, headings, prose, and image alt text. Example: `创建 Rust 项目`, `前端 TUI 项目`, `Rust XTask 自动化`.
 - Do not rely on filename prefixes alone for sidebar order, because Docusaurus may not sort decimal prefixes between surrounding integer docs by filename alone.
+- For category folders, prefer stable English generated-index slugs in `_category_.json` such as `"/category/u1-development-scaffolding"` so locale switching does not expose Chinese category URL slugs.
 - Do not put numeric ordering prefixes or Chinese titles in image folder names.
 - Do not overwrite an existing doc; choose a different order or title when there is a collision.
 - Use immutable GitHub commit links for mentioned project source/config files with this base: `https://github.com/kefeiqian/KQode/blob/<commit>/`. Do not use `main` for these links because it can drift after the article is published.

@@ -296,3 +296,5 @@ cargo xtask tui-test
 ### 运行截图
 
 一切就绪后，运行截图如下：
+
+![KQode TUI dev 运行截图](../images/create-frontend-tui-project/tui-dev-run-output.png)
