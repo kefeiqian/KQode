@@ -3,6 +3,7 @@ use std::path::Path;
 pub mod blog;
 pub mod fixture;
 pub mod help;
+pub mod package;
 pub mod tui;
 
 /// Metadata and executable entrypoint for one xtask command.
@@ -14,10 +15,12 @@ pub struct CommandSpec {
 }
 
 const HELP_COMMANDS: &[CommandSpec] = &[help::COMMAND];
+const PACKAGE_COMMANDS: &[CommandSpec] = &[package::COMMAND];
 const COMMAND_GROUPS: &[&[CommandSpec]] = &[
     fixture::COMMANDS,
     tui::COMMANDS,
     blog::COMMANDS,
+    PACKAGE_COMMANDS,
     HELP_COMMANDS,
 ];
 

@@ -11,7 +11,8 @@
   "scripts": {
     "dev": "tsx main.tsx",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "package": "bun scripts/buildPackaged.ts"
   },
   "dependencies": {
     "ink": "^7.1.0",
