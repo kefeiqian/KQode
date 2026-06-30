@@ -44,7 +44,12 @@ export async function createAppRuntime({ entryUrl }: { entryUrl: string }): Prom
   if (process.env.KQODE_DISTRIBUTION === 'packaged') {
     productVersion = resolveProductVersion({});
     const { createPackagedBackendClient } = await import('@backend/client/packagedBackendClient.ts');
-    client = createPackagedBackendClient({ workspaceCwd });
+    const { loadEmbeddedBackendAsset } = await import('@backend/packaged/embeddedBackendAsset.ts');
+    client = createPackagedBackendClient({
+      asset: loadEmbeddedBackendAsset(),
+      version: productVersion,
+      workspaceCwd
+    });
   } else {
     const repoRoot = resolveRepoRoot(path.dirname(fileURLToPath(entryUrl)));
     store.set(repoRootAtom, repoRoot);

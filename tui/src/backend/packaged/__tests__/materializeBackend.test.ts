@@ -1,0 +1,139 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { afterEach, describe, expect, it } from 'vitest';
+import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
+import {
+  materializePackagedBackend,
+  type EmbeddedBackendAsset
+} from '@backend/packaged/materializeBackend.ts';
+import {
+  packagedBackendBinaryName,
+  resolvePackagedBackendPaths
+} from '@backend/packaged/backendCacheDir.ts';
+
+const PLATFORM: NodeJS.Platform = process.platform;
+const isWindows = PLATFORM === 'win32';
+const tempDirs: string[] = [];
+
+function tempBase(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kqode-materialize-'));
+  tempDirs.push(dir);
+  return dir;
+}
+
+function sha256(bytes: Buffer): string {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function asset(bytes: Buffer, sha = sha256(bytes)): EmbeddedBackendAsset & { calls: () => number } {
+  let calls = 0;
+  return {
+    sha256: sha,
+    readBytes: () => {
+      calls += 1;
+      return Promise.resolve(bytes);
+    },
+    calls: () => calls
+  };
+}
+
+afterEach(() => {
+  while (tempDirs.length > 0) {
+    fs.rmSync(tempDirs.pop() as string, { recursive: true, force: true });
+  }
+});
+
+describe('materializePackagedBackend', () => {
+  it('writes the embedded binary into the versioned per-user cache', async () => {
+    const cacheBaseDir = tempBase();
+    const bytes = Buffer.from('fake backend v1');
+    const binaryPath = await materializePackagedBackend({
+      asset: asset(bytes),
+      version: '0.1.0',
+      cacheBaseDir
+    });
+
+    const expected = resolvePackagedBackendPaths({ version: '0.1.0', cacheBaseDir }).binaryPath;
+    expect(binaryPath).toBe(expected);
+    expect(fs.readFileSync(binaryPath)).toEqual(bytes);
+    expect(path.basename(binaryPath)).toBe(packagedBackendBinaryName());
+  });
+
+  it('isolates different versions in separate directories', async () => {
+    const cacheBaseDir = tempBase();
+    const a = await materializePackagedBackend({ asset: asset(Buffer.from('v1')), version: '1.0.0', cacheBaseDir });
+    const b = await materializePackagedBackend({ asset: asset(Buffer.from('v2')), version: '2.0.0', cacheBaseDir });
+    expect(path.dirname(a)).not.toBe(path.dirname(b));
+  });
+
+  it('reuses an already-materialized binary without re-reading the asset', async () => {
+    const cacheBaseDir = tempBase();
+    const reusable = asset(Buffer.from('cached backend'));
+    await materializePackagedBackend({ asset: reusable, version: '0.1.0', cacheBaseDir });
+    await materializePackagedBackend({ asset: reusable, version: '0.1.0', cacheBaseDir });
+    expect(reusable.calls()).toBe(1);
+  });
+
+  it('re-materializes when the cached binary content no longer matches its digest', async () => {
+    const cacheBaseDir = tempBase();
+    const good = asset(Buffer.from('good backend'));
+    const binaryPath = await materializePackagedBackend({ asset: good, version: '0.1.0', cacheBaseDir });
+
+    fs.writeFileSync(binaryPath, Buffer.from('tampered'));
+    await materializePackagedBackend({ asset: good, version: '0.1.0', cacheBaseDir });
+
+    expect(fs.readFileSync(binaryPath)).toEqual(Buffer.from('good backend'));
+    expect(good.calls()).toBe(2);
+  });
+
+  it('rejects an asset whose bytes do not match its declared digest', async () => {
+    const cacheBaseDir = tempBase();
+    const corrupt: EmbeddedBackendAsset = {
+      sha256: 'f'.repeat(64),
+      readBytes: () => Promise.resolve(Buffer.from('mismatched bytes'))
+    };
+
+    await expect(
+      materializePackagedBackend({ asset: corrupt, version: '0.1.0', cacheBaseDir })
+    ).rejects.toMatchObject({ kind: BackendErrorKind.Launch });
+
+    const binaryPath = resolvePackagedBackendPaths({ version: '0.1.0', cacheBaseDir }).binaryPath;
+    expect(fs.existsSync(binaryPath)).toBe(false);
+  });
+
+  it.skipIf(isWindows)('creates the binary and runtime dir with user-only permissions', async () => {
+    const cacheBaseDir = tempBase();
+    const binaryPath = await materializePackagedBackend({
+      asset: asset(Buffer.from('perm check')),
+      version: '0.1.0',
+      cacheBaseDir
+    });
+    expect(fs.statSync(binaryPath).mode & 0o777).toBe(0o700);
+    expect(fs.statSync(path.dirname(binaryPath)).mode & 0o777).toBe(0o700);
+  });
+
+  it.skipIf(isWindows)('refuses to follow a symlink planted at the cache path', async () => {
+    const cacheBaseDir = tempBase();
+    const { runtimeDir, binaryPath } = resolvePackagedBackendPaths({ version: '0.1.0', cacheBaseDir });
+    fs.mkdirSync(runtimeDir, { recursive: true });
+    const decoy = path.join(cacheBaseDir, 'decoy-target');
+    fs.writeFileSync(decoy, Buffer.from('attacker controlled'));
+    fs.symlinkSync(decoy, binaryPath);
+
+    await expect(
+      materializePackagedBackend({ asset: asset(Buffer.from('real')), version: '0.1.0', cacheBaseDir })
+    ).rejects.toBeInstanceOf(BackendClientError);
+    // The symlinked decoy was never written through.
+    expect(fs.readFileSync(decoy)).toEqual(Buffer.from('attacker controlled'));
+  });
+
+  it('leaves no temp staging files behind after a successful materialization', async () => {
+    const cacheBaseDir = tempBase();
+    const { runtimeDir } = resolvePackagedBackendPaths({ version: '0.1.0', cacheBaseDir });
+    await materializePackagedBackend({ asset: asset(Buffer.from('clean')), version: '0.1.0', cacheBaseDir });
+    const leftovers = fs.readdirSync(runtimeDir).filter((name) => name.endsWith('.tmp'));
+    expect(leftovers).toEqual([]);
+  });
+});

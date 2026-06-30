@@ -1,10 +1,16 @@
 import { createBackendClient, type BackendClientHandle } from '@backend/client/backendClient.ts';
-import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
+import { launchPackagedBackend } from '@backend/packaged/launchPackagedBackend.ts';
+import type { EmbeddedBackendAsset } from '@backend/packaged/materializeBackend.ts';
 
 /** Packaged/dist composition inputs: run the embedded backend in `workspaceCwd`. */
 export type PackagedBackendClientOptions = {
+  /** Embedded Rust backend asset plus its build-time integrity digest. */
+  asset: EmbeddedBackendAsset;
+  /** Product version selecting the versioned cache directory. */
+  version: string;
   /** Workspace directory the materialized backend process runs in. */
   workspaceCwd: string;
+  cacheBaseDir?: string;
   requestTimeoutMs?: number;
 };
 
@@ -12,21 +18,21 @@ export type PackagedBackendClientOptions = {
  * Creates a backend client backed by the Rust binary embedded in the standalone
  * executable.
  *
- * The materialize/verify/launch implementation lands in a later unit; this stub
- * keeps the distribution seam wired and fails closed with a typed `launch`
- * error so packaged mode can never silently look connected.
+ * Each launch materializes and integrity-verifies the embedded backend before
+ * spawning it (see {@link launchPackagedBackend}); no Cargo build is involved.
+ * A materialization or spawn failure surfaces as a fail-closed `launch` error.
  */
 export function createPackagedBackendClient(
   options: PackagedBackendClientOptions
 ): BackendClientHandle {
   return createBackendClient({
     launch: () =>
-      Promise.reject(
-        new BackendClientError(
-          BackendErrorKind.Launch,
-          'packaged backend launch is not implemented yet'
-        )
-      ),
+      launchPackagedBackend({
+        asset: options.asset,
+        version: options.version,
+        workspaceCwd: options.workspaceCwd,
+        cacheBaseDir: options.cacheBaseDir
+      }),
     requestTimeoutMs: options.requestTimeoutMs
   });
 }
