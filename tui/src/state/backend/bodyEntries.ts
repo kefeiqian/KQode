@@ -1,4 +1,4 @@
-import { BackendClientError } from '@backend/client/backendClient.js';
+import { BackendClientError } from '@contracts/backend/index.js';
 import { sanitizeDisplayText } from '@libs/text/sanitizeDisplayText.js';
 import type { BodyEntry } from '@libs/tui/bodyRows.js';
 

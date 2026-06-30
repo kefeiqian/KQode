@@ -1,9 +1,29 @@
 import { createStore } from 'jotai';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from '@/App.js';
-import { seedScreenState } from '@state/global/index.js';
+import {
+  columnsTestOverrideAtom,
+  productVersionAtom,
+  rowsTestOverrideAtom,
+  workspaceCwdAtom
+} from '@state/global/index.js';
 import { flushInput } from '@test/flushInput.js';
 import { renderWithJotai } from '@test/renderWithJotai.js';
+
+const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\dummy-react-app';
+
+function renderApp({ columns, rows }: { columns?: number; rows?: number } = {}) {
+  const store = createStore();
+  store.set(productVersionAtom, '0.1.0');
+  store.set(workspaceCwdAtom, workspaceCwd);
+  if (columns !== undefined) {
+    store.set(columnsTestOverrideAtom, columns);
+  }
+  if (rows !== undefined) {
+    store.set(rowsTestOverrideAtom, rows);
+  }
+  return renderWithJotai(<App />, store);
+}
 
 function deferredPromise<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -29,14 +49,7 @@ async function waitForFrame(
 
 describe('App', () => {
   it('smoke renders product metadata and workspace cwd', () => {
-    const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\dummy-react-app';
-    const screen = { productVersion: '0.1.0', workspaceCwd, columns: 100, rows: 20, startupTasks: [] };
-    const store = createStore();
-    seedScreenState(store, screen, { windowColumns: screen.columns, windowRows: screen.rows });
-    const { lastFrame } = renderWithJotai(
-      <App />,
-      store
-    );
+    const { lastFrame } = renderApp({ columns: 100, rows: 20 });
 
     const output = lastFrame() ?? '';
 
@@ -47,14 +60,7 @@ describe('App', () => {
   });
 
   it('reflows to the latest terminal size after stdout resize events', async () => {
-    const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\dummy-react-app';
-    const screen = { productVersion: '0.1.0', workspaceCwd, startupTasks: [] as const };
-    const store = createStore();
-    seedScreenState(store, screen);
-    const { lastFrame, stdout } = renderWithJotai(
-      <App />,
-      store
-    );
+    const { lastFrame, stdout } = renderApp();
 
     await flushInput();
     Object.defineProperty(stdout, 'columns', { configurable: true, value: 80 });
@@ -68,14 +74,7 @@ describe('App', () => {
   });
 
   it('keeps the layout at the minimum height when the terminal shrinks below 10 rows', async () => {
-    const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\dummy-react-app';
-    const screen = { productVersion: '0.1.0', workspaceCwd, startupTasks: [] as const };
-    const store = createStore();
-    seedScreenState(store, screen);
-    const { lastFrame, stdout } = renderWithJotai(
-      <App />,
-      store
-    );
+    const { lastFrame, stdout } = renderApp();
 
     await flushInput();
     Object.defineProperty(stdout, 'columns', { configurable: true, value: 80 });
@@ -89,14 +88,7 @@ describe('App', () => {
   });
 
   it('preloads startup tasks on mount, locks composer input, then restores the default hints', async () => {
-    const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\dummy-react-app';
-    const screen = { productVersion: '0.1.0', workspaceCwd, columns: 100, rows: 20 };
-    const store = createStore();
-    seedScreenState(store, screen, { windowColumns: screen.columns, windowRows: screen.rows });
-    const { lastFrame, stdin } = renderWithJotai(
-      <App />,
-      store
-    );
+    const { lastFrame, stdin } = renderApp({ columns: 100, rows: 20 });
 
     stdin.write('blocked while loading');
     await flushInput();

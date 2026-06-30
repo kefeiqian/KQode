@@ -8,14 +8,15 @@ import {
   StreamMessageReader,
   StreamMessageWriter
 } from 'vscode-jsonrpc/node';
-import { BackendClientError, BackendErrorKind } from '@backend/client/backendClient.js';
-import { launchSourceBackend, type LaunchedBackend } from '@backend/process/backendProcess.js';
-import { ACK_MESSAGE, messageSubmitRequest } from '@backend/protocol/messageProtocol.js';
-import type { MessageSubmitResult } from '@backend/protocol/messageProtocol.js';
+import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.js';
+import { type LaunchedBackend } from '@backend/process/backendProcess.js';
+import { ACK_MESSAGE } from '@contracts/backend/index.js';
+import { messageSubmitRequest } from '@backend/protocol/messageProtocol.js';
+import type { MessageSubmitResult } from '@contracts/backend/index.js';
 import {
   BackendLifecycleState,
-  createProcessBackendClient
-} from '@backend/client/processBackendClient.js';
+  createBackendClient
+} from '@backend/client/backendClient.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..');
 const INTEGRATION_TIMEOUT_MS = 180_000;
@@ -75,11 +76,11 @@ afterEach(() => {
   openServers = [];
 });
 
-describe('createProcessBackendClient (fake backend)', () => {
+describe('createBackendClient (fake backend)', () => {
   it('can prelaunch the backend before the first submit', async () => {
     const fake = makeFakeBackend(ack);
     const launch = vi.fn(async () => fake.launched);
-    const client = createProcessBackendClient({ launch });
+    const client = createBackendClient({ launchTestOverride: launch });
 
     await client.ensureStarted();
 
@@ -94,7 +95,7 @@ describe('createProcessBackendClient (fake backend)', () => {
 
   it('starts idle and becomes ready after a successful submit', async () => {
     const fake = makeFakeBackend(ack);
-    const client = createProcessBackendClient({ launch: async () => fake.launched });
+    const client = createBackendClient({ launchTestOverride: async () => fake.launched });
 
     expect(client.getState()).toBe(BackendLifecycleState.Idle);
     const result = await client.submitMessage({ text: 'hello' });
@@ -111,7 +112,7 @@ describe('createProcessBackendClient (fake backend)', () => {
       })
     );
     const launch = vi.fn(async () => fake.launched);
-    const client = createProcessBackendClient({ launch });
+    const client = createBackendClient({ launchTestOverride: launch });
 
     await expect(client.submitMessage({ text: 'x' })).rejects.toMatchObject({
       kind: BackendErrorKind.Protocol
@@ -133,7 +134,7 @@ describe('createProcessBackendClient (fake backend)', () => {
     const healthy = makeFakeBackend(ack);
     const backends = [hung, healthy];
     const launch = vi.fn(async () => backends.shift()?.launched as LaunchedBackend);
-    const client = createProcessBackendClient({ launch, requestTimeoutMs: 100 });
+    const client = createBackendClient({ launchTestOverride: launch, requestTimeoutMs: 100 });
 
     await expect(client.submitMessage({ text: 'first' })).rejects.toMatchObject({
       kind: BackendErrorKind.Timeout
@@ -150,7 +151,7 @@ describe('createProcessBackendClient (fake backend)', () => {
 
   it('marks the client dead when the backend process exits', async () => {
     const fake = makeFakeBackend(ack);
-    const client = createProcessBackendClient({ launch: async () => fake.launched });
+    const client = createBackendClient({ launchTestOverride: async () => fake.launched });
 
     await client.submitMessage({ text: 'alive' });
     expect(client.getState()).toBe(BackendLifecycleState.Ready);
@@ -169,7 +170,7 @@ describe('createProcessBackendClient (fake backend)', () => {
           resolveLaunch = resolve;
         })
     );
-    const client = createProcessBackendClient({ launch });
+    const client = createBackendClient({ launchTestOverride: launch });
 
     const submit = client.submitMessage({ text: 'race' });
     client.dispose();
@@ -181,13 +182,11 @@ describe('createProcessBackendClient (fake backend)', () => {
   });
 });
 
-describe('createProcessBackendClient (integration)', () => {
+describe('createBackendClient (integration)', () => {
   it(
     'starts the Rust backend, submits, and receives the ACK with exact receivedText',
     async () => {
-      const client = createProcessBackendClient({
-        launch: () => launchSourceBackend({ repoRoot, workspaceCwd: repoRoot })
-      });
+      const client = createBackendClient({ repoRoot, workspaceCwd: repoRoot });
       try {
         const result = await client.submitMessage({ text: '  café\n☕  ' });
         expect(result.message).toBe(ACK_MESSAGE);

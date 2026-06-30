@@ -1,5 +1,5 @@
 import type { createStore } from 'jotai';
-import type { BackendClient } from '@backend/client/backendClient.js';
+import type { BackendClient } from '@contracts/backend/index.js';
 import { backendClientAtom } from '@state/global/backend.js';
 import { BACKEND_LOADING_HINT, startupStatusHintAtom } from '@state/global/statusHint.js';
 

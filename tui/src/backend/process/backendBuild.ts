@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { BackendClientError, BackendErrorKind } from '@backend/client/backendClient.js';
+import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.js';
 import {
   BUILD_STDERR_CAP_BYTES,
   CARGO_BINARY_NAME,

@@ -1,8 +1,8 @@
 import { type MessageConnection, ResponseError } from 'vscode-jsonrpc';
-import { BackendClientError, BackendErrorKind } from '@backend/client/backendClient.js';
-import type { BackendClient } from '@backend/client/backendClient.js';
+import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.js';
+import type { BackendClient } from '@contracts/backend/index.js';
 import { messageSubmitRequest } from '@backend/protocol/messageProtocol.js';
-import type { MessageSubmitParams, MessageSubmitResult } from '@backend/protocol/messageProtocol.js';
+import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backend/index.js';
 
 /**
  * Builds a {@link BackendClient} over an already-established JSON-RPC connection.

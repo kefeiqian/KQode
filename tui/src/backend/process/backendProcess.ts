@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import type { Readable, Writable } from 'node:stream';
-import { BackendClientError, BackendErrorKind } from '@backend/client/backendClient.js';
+import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.js';
 import { buildBackend, resolveBackendBinaryPath } from '@backend/process/backendBuild.js';
 import { BACKEND_MODE_ARG, DEFAULT_STARTUP_TIMEOUT_MS } from '@backend/backendConstants.js';
 import { buildHardenedEnv } from '@backend/process/processEnv.js';

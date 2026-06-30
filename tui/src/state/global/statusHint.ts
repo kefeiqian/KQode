@@ -14,9 +14,5 @@ export const BACKEND_LOADING_HINT: StatusHint = {
 };
 
 export const startupStatusHintAtom = atom<StatusHint | undefined>(undefined);
-export const statusHintOverrideAtom = atom<StatusHint | undefined>(undefined);
 
-export const statusHintAtom = atom((get) => {
-  const startupHint = get(startupStatusHintAtom);
-  return startupHint ?? get(statusHintOverrideAtom);
-});
+export const statusHintAtom = atom((get) => get(startupStatusHintAtom));

@@ -11,7 +11,8 @@ const FORBIDDEN_REFERENCES = [
   'node:child_process',
   'backendProcess',
   'backendBuild',
-  'processBackendClient',
+  'createBackendClient',
+  'BackendClientHandle',
   'processUtils',
   'launchSourceBackend',
   'tree-kill'

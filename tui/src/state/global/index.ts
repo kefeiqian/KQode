@@ -1,6 +1,5 @@
 export * from '@state/global/backend.js';
 export * from '@state/global/body.js';
-export * from '@state/global/bootstrap.js';
 export * from '@state/global/dimensions.js';
 export * from '@state/global/gitStatus.js';
 export * from '@state/global/inputLock.js';

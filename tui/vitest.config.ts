@@ -11,6 +11,7 @@ export default defineConfig({
       '@': srcRoot,
       '@backend': path.join(srcRoot, 'backend'),
       '@components': path.join(srcRoot, 'components'),
+      '@contracts': path.join(srcRoot, 'contracts'),
       '@libs': path.join(srcRoot, 'libs'),
       '@state': path.join(srcRoot, 'state'),
       '@test': path.join(srcRoot, 'test'),

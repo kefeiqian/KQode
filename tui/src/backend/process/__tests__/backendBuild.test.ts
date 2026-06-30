@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BackendErrorKind } from '@backend/client/backendClient.js';
+import { BackendErrorKind } from '@contracts/backend/index.js';
 import { buildBackend, resolveBackendBinaryPath } from '@backend/process/backendBuild.js';
 
 describe('resolveBackendBinaryPath', () => {

@@ -1,24 +1,30 @@
 import { createStore } from 'jotai';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from '@/App.js';
-import { BackendClientError, BackendErrorKind } from '@backend/client/backendClient.js';
-import type { BackendClient } from '@backend/client/backendClient.js';
-import { ACK_MESSAGE } from '@backend/protocol/messageProtocol.js';
-import type { MessageSubmitParams, MessageSubmitResult } from '@backend/protocol/messageProtocol.js';
-import { seedScreenState } from '@state/global/index.js';
+import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.js';
+import type { BackendClient } from '@contracts/backend/index.js';
+import { ACK_MESSAGE } from '@contracts/backend/index.js';
+import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backend/index.js';
+import {
+  backendClientAtom,
+  columnsTestOverrideAtom,
+  productVersionAtom,
+  rowsTestOverrideAtom,
+  workspaceCwdAtom
+} from '@state/global/index.js';
 import { flushInput } from '@test/flushInput.js';
 import { renderWithJotai } from '@test/renderWithJotai.js';
 
 const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\dummy-react-app';
 
 function renderApp(backendClient: BackendClient, columns = 80, rows = 40) {
-  const screen = { productVersion: '0.1.0', workspaceCwd, columns, rows, backendClient };
   const store = createStore();
-  seedScreenState(store, screen, { windowColumns: columns, windowRows: rows });
-  return renderWithJotai(
-    <App />,
-    store
-  );
+  store.set(productVersionAtom, '0.1.0');
+  store.set(workspaceCwdAtom, workspaceCwd);
+  store.set(columnsTestOverrideAtom, columns);
+  store.set(rowsTestOverrideAtom, rows);
+  store.set(backendClientAtom, backendClient);
+  return renderWithJotai(<App />, store);
 }
 
 function echoBackend() {

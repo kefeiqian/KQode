@@ -4,34 +4,55 @@ import { describe, expect, it } from 'vitest';
 import { App } from '@/App.js';
 import { BodyPane } from '@components/BodyPane.js';
 import { formatDisplayCwd } from '@libs/tui/cwdLine.js';
+import type { BodyEntry } from '@libs/tui/bodyRows.js';
 import { PROMPT_MAX_BYTES } from '@state/composer/index.js';
-import type { HomeScreenOptions } from '@state/global/index.js';
-import { seedScreenState } from '@state/global/index.js';
+import {
+  bodyEntriesAtom,
+  columnsTestOverrideAtom,
+  gitStatusLabelTestOverrideAtom,
+  productVersionAtom,
+  rowsTestOverrideAtom,
+  workspaceCwdAtom
+} from '@state/global/index.js';
 import { flushInput } from '@test/flushInput.js';
 import { renderWithJotai } from '@test/renderWithJotai.js';
 import { theme } from '@theme/themeConfig.js';
 
 const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\KQode';
 
+type RenderHomeScreenOptions = {
+  productVersion?: string;
+  workspaceCwd?: string;
+  gitStatusLabel?: string;
+  columns?: number;
+  rows?: number;
+  bodyEntries?: readonly BodyEntry[];
+};
+
 function renderHomeScreen({
   productVersion = '0.1.0',
   workspaceCwd: screenWorkspaceCwd = workspaceCwd,
-  ...options
-}: Partial<HomeScreenOptions> = {}) {
-  const screen = {
-    productVersion,
-    workspaceCwd: screenWorkspaceCwd,
-    ...options
-  };
+  gitStatusLabel,
+  columns,
+  rows,
+  bodyEntries
+}: RenderHomeScreenOptions = {}) {
   const store = createStore();
-  seedScreenState(store, screen, {
-    windowColumns: screen.columns,
-    windowRows: screen.rows
-  });
-  return renderWithJotai(
-    <App />,
-    store
-  );
+  store.set(productVersionAtom, productVersion);
+  store.set(workspaceCwdAtom, screenWorkspaceCwd);
+  if (gitStatusLabel !== undefined) {
+    store.set(gitStatusLabelTestOverrideAtom, gitStatusLabel);
+  }
+  if (columns !== undefined) {
+    store.set(columnsTestOverrideAtom, columns);
+  }
+  if (rows !== undefined) {
+    store.set(rowsTestOverrideAtom, rows);
+  }
+  if (bodyEntries !== undefined) {
+    store.set(bodyEntriesAtom, bodyEntries);
+  }
+  return renderWithJotai(<App />, store);
 }
 
 describe('HomeScreen', () => {
