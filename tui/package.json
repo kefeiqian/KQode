@@ -12,7 +12,8 @@
     "dev": "tsx main.tsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "package": "bun scripts/buildPackaged.ts"
+    "package": "bun scripts/buildPackaged.ts",
+    "stage:npm": "bun scripts/stageNpm.ts"
   },
   "dependencies": {
     "ink": "^7.1.0",
