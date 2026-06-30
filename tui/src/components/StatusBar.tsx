@@ -26,7 +26,11 @@ export function StatusBar() {
   const showModel = columns >= 60;
 
   return (
-    <Box width={columns}>
+    // Reserve the terminal's final column. With incremental rendering, Ink erases
+    // to end-of-line after each row; a glyph rendered into the last column can be
+    // dropped on some terminals (WezTerm clipped "GPT-5.5" to "GPT-5."). Keeping
+    // the right-aligned model label one column in from the edge avoids that.
+    <Box width={columns} paddingRight={1}>
       <Text color={theme.colors.muted}>{leftHints}</Text>
       {showModel ? (
         <Box flexGrow={1} justifyContent="flex-end">

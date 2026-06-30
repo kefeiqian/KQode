@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { App } from '@/App.tsx';
 import {
   columnsTestOverrideAtom,
+  FULLSCREEN_GUARD_ROWS,
   productVersionAtom,
   rowsTestOverrideAtom,
   workspaceCwdAtom
@@ -69,7 +70,8 @@ describe('App', () => {
     await flushInput();
 
     const outputRows = (lastFrame() ?? '').split('\n');
-    expect(outputRows).toHaveLength(18);
+    // One row is reserved below the UI to keep frames under fullscreen.
+    expect(outputRows).toHaveLength(18 - FULLSCREEN_GUARD_ROWS);
     expect(outputRows.at(-1)).toContain('/ commands | @ mention | ? help');
   });
 

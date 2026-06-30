@@ -12,6 +12,29 @@ export const columnsAtom = atom(
   (get) => get(columnsTestOverrideAtom) ?? get(windowColumnsAtom) ?? DEFAULT_COLUMNS
 );
 
-export const rowsAtom = atom((get) =>
-  Math.max(MIN_ROWS, get(rowsTestOverrideAtom) ?? get(windowRowsAtom) ?? DEFAULT_ROWS)
-);
+/**
+ * Rows reserved below the UI so a frame never fills the terminal *exactly*.
+ *
+ * Rendering at full terminal height makes Ink treat every frame as fullscreen;
+ * on Windows that forces a whole-screen clear (`ESC[2J ESC[3J`) and full repaint
+ * on **every** keystroke, which wipes scrollback and blinks in terminals that do
+ * not coalesce the clear (e.g. WezTerm). Reserving one row keeps Ink on its
+ * incremental path so only changed lines are rewritten. The trade-off is a
+ * single blank row at the bottom of the terminal.
+ */
+export const FULLSCREEN_GUARD_ROWS = 1;
+
+/**
+ * Rows the UI renders into. Production reserves {@link FULLSCREEN_GUARD_ROWS}
+ * from the live terminal height so frames stay just under fullscreen; test
+ * overrides pin the canvas directly and bypass the reservation.
+ */
+export const rowsAtom = atom((get) => {
+  const override = get(rowsTestOverrideAtom);
+  if (override !== undefined) {
+    return Math.max(MIN_ROWS, override);
+  }
+
+  const windowRows = get(windowRowsAtom) ?? DEFAULT_ROWS;
+  return Math.max(MIN_ROWS, windowRows - FULLSCREEN_GUARD_ROWS);
+});

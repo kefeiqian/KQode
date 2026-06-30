@@ -16,8 +16,9 @@ export function resolveComposerCursorPosition(
 
   return {
     x: PROMPT_PREFIX.length + cursorPosition.x,
-    // Ink's cursor row origin is one row below the measured box top, so the
-    // measured composer top plus any half-line padding lands on the editable row.
+    // The measured composer top plus any half-line padding lands on the editable
+    // row; INK_CURSOR_ROW_ORIGIN_OFFSET absorbs Ink's cursor-baseline origin
+    // (0 while rendering just under fullscreen — see its definition).
     y: composerTop + topPaddingRows + cursorPosition.y + INK_CURSOR_ROW_ORIGIN_OFFSET
   };
 }
