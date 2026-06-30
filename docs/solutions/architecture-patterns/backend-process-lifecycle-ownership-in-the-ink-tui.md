@@ -29,7 +29,7 @@ tags:
 
 ## Context
 
-KQode's terminal UI is a TypeScript Ink app (`tui/`) that talks to a Rust backend spawned as a JSON-RPC child process. A committed guardrail test, `tui/src/__tests__/backendIsolation.test.ts`, forbids everything under `src/state/**` and `src/components/**` from importing process/launch code (`createProcessBackendClient`, `launchSourceBackend`, `node:child_process`, `tree-kill`, …). The intent: the display/state layer reaches the backend **only** through a narrow injected `BackendClient` seam (`submitMessage` only), never through process mechanics. This isolation rule and the narrow seam predate this work — they were established earlier on the `feat/first-ink-tui-jsonrpc-backend` branch. (session history)
+KQode's terminal UI is a TypeScript Ink app (`tui/`) that talks to a Rust backend spawned as a JSON-RPC child process. A committed guardrail test, `tui/src/__tests__/backendIsolation.test.ts`, forbids everything under `src/state/**` and `src/components/**` from importing process/launch code (`createBackendClient`, `launchSourceBackend`, `node:child_process`, `tree-kill`, …). The intent: the display/state layer reaches the backend **only** through a narrow injected `BackendClient` seam (`submitMessage` only), never through process mechanics. This isolation rule and the narrow seam predate this work — they were established earlier on the `feat/first-ink-tui-jsonrpc-backend` branch. (session history)
 
 A work-in-progress had placed backend creation **inside a Jotai state atom** (`initializeRuntimeAtom`), which called `createProcessBackendClient({ launch: () => launchSourceBackend(...) })` and was driven by `App`'s `useEffect` (init on mount, dispose on unmount). That made the isolation test red. When asked to fix it, the reflex objection was "is this dependency injection just to satisfy a test?" The resolving insight: **the backend's lifetime equals the TUI *process* lifetime, not a React *component* lifetime.** `App` is the root component — it mounts once and unmounts once — so tying process create/dispose to a `useEffect` is a category mismatch (and risks StrictMode/remount double-spawn or double-kill). The natural owner is the program entry point.
 
@@ -41,7 +41,7 @@ Own process-backed lifecycles at the **composition root** (`main.tsx`), not in R
 
 ```ts
 // tui/main.tsx
-const backendClient = createProcessBackendClient({
+const backendClient = createBackendClient({
   launch: () => launchSourceBackend({ repoRoot, workspaceCwd })
 });
 const disposeBackend = startBackendRuntime(store, backendClient);
@@ -80,7 +80,7 @@ export const backendClientAtom = atom<BackendClient | undefined>(undefined);
 // BackendClient = { submitMessage(params): Promise<MessageSubmitResult> }
 ```
 
-4. Components stop managing the process. `App` was reduced to window-size wiring; the init/dispose effect was deleted. Tests inject a fake `{ submitMessage }` via `seedScreenState({ backendClient })`, so no test spawns a real process.
+4. Components stop managing the process. `App` was reduced to window-size wiring; the init/dispose effect was deleted. Tests inject a fake `{ submitMessage }` by setting `backendClientAtom` on an isolated store, so no test spawns a real process.
 
 Start eagerly, not lazily: `submitMessage` would lazily start the backend on first use via `ensureSession()`, but the eager `ensureStarted()` at boot is what spawns the process up front and drives the "Loading backend" hint. Eager startup was an explicit product requirement.
 
@@ -90,7 +90,7 @@ Start eagerly, not lazily: `submitMessage` would lazily start the backend on fir
 - **Correct lifetime model**: backend lifetime tracks the TUI process, not a component mount cycle. The root component effectively never remounts, so the "React-driven lifecycle" was illusory.
 - **Avoids remount hazards**: process create/dispose can't be double-fired by StrictMode or a remount.
 - **Clean startup UX**: eager start plus a single "Loading backend" status hint, cleared on settle.
-- **Simpler tests and wiring**: removing the effect deleted a dead `autoInitializeRuntime` flag and let tests inject a narrow fake.
+- **Simpler tests and wiring**: removing the effect deleted a dead `autoInitializeRuntime` flag and let tests inject a narrow fake. Wiring later collapsed further — the bootstrap atoms are seeded by direct `store.set` at the composition root (no seed helper), and tests set only the atoms they need on an isolated store.
 
 ## When to Apply
 
@@ -129,6 +129,6 @@ Supporting structure introduced alongside this: backend code lives under `tui/sr
 ## Related
 
 - Guardrail: `tui/src/__tests__/backendIsolation.test.ts`
-- Narrow seam type: `tui/src/backend/client/backendClient.ts`
-- Process client (lazy `ensureSession`, `ensureStarted`, `dispose`): `tui/src/backend/client/processBackendClient.ts`
+- Narrow seam type: `tui/src/contracts/backend/client.ts`
+- Backend client lifecycle handle (lazy `ensureSession`, `ensureStarted`, `dispose`): `tui/src/backend/client/backendClient.ts`
 - No related GitHub issues found.
