@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+/** Display name of the product. Centralized so a future rename touches one place. */
+export const PRODUCT_NAME = 'KQode';
+
 const CARGO_VERSION_PATTERN = /^\s*version\s*=\s*"([^"]+)"/m;
 
 export function readProductVersion(repoRoot: string): string {
