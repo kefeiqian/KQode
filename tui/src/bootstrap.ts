@@ -12,6 +12,7 @@ import {
 } from '@libs/terminal/terminalBackground.ts';
 import { productVersionAtom, repoRootAtom, workspaceCwdAtom } from '@state/global/index.ts';
 import { theme } from '@theme/themeConfig.ts';
+import type { EmbeddedBackendAsset } from '@backend/packaged/materializeBackend.ts';
 
 type Store = ReturnType<typeof createStore>;
 
@@ -21,6 +22,19 @@ export type AppRuntime = {
   dispose: () => void;
 };
 
+export type CreateAppRuntimeOptions = {
+  /** Source-mode anchor used to locate the repo root; ignored in packaged mode. */
+  entryUrl: string;
+  /**
+   * Packaged-only supplier of the embedded backend asset.
+   *
+   * The packaged entry injects this so the Bun-only embedding APIs
+   * (`Bun.file`, `with { type: 'file' }`) stay out of the typechecked/test graph;
+   * source mode never calls it.
+   */
+  loadPackagedAsset?: () => EmbeddedBackendAsset;
+};
+
 /**
  * Composes the TUI store and the distribution-appropriate backend client.
  *
@@ -28,13 +42,16 @@ export type AppRuntime = {
  * string literal (matching `PACKAGED_DISTRIBUTION`): Bun `--define` inlines it
  * at build time so the unused launch strategy is dead-code-eliminated — the
  * Cargo source-launch code is dropped from the packaged executable, and the
- * embedded-backend module is never resolved in source mode. Each strategy is
- * therefore loaded with a dynamic `import()` inside its own branch.
+ * packaged client is never resolved in source mode. Each strategy is therefore
+ * loaded with a dynamic `import()` inside its own branch.
  *
  * `entryUrl` is the source-mode anchor used to locate the repo root for Cargo
  * and product metadata; it is ignored in packaged mode.
  */
-export async function createAppRuntime({ entryUrl }: { entryUrl: string }): Promise<AppRuntime> {
+export async function createAppRuntime({
+  entryUrl,
+  loadPackagedAsset
+}: CreateAppRuntimeOptions): Promise<AppRuntime> {
   const store = createStore();
   const workspaceCwd = resolveWorkspaceCwd();
   store.set(workspaceCwdAtom, workspaceCwd);
@@ -42,11 +59,13 @@ export async function createAppRuntime({ entryUrl }: { entryUrl: string }): Prom
   let client: BackendClientHandle;
   let productVersion: string;
   if (process.env.KQODE_DISTRIBUTION === 'packaged') {
+    if (loadPackagedAsset === undefined) {
+      throw new Error('packaged runtime requires an embedded backend asset loader');
+    }
     productVersion = resolveProductVersion({});
     const { createPackagedBackendClient } = await import('@backend/client/packagedBackendClient.ts');
-    const { loadEmbeddedBackendAsset } = await import('@backend/packaged/embeddedBackendAsset.ts');
     client = createPackagedBackendClient({
-      asset: loadEmbeddedBackendAsset(),
+      asset: loadPackagedAsset(),
       version: productVersion,
       workspaceCwd
     });

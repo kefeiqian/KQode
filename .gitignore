@@ -5,6 +5,7 @@
 # TUI Node artifacts
 /tui/node_modules/
 /tui/dist/
+/tui/packaged/assets/
 /tui/coverage/
 /tui/.vite/
 /tui/.vitest/
