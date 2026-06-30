@@ -7,7 +7,7 @@ import {
 import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
 import type { BackendClient } from '@contracts/backend/index.ts';
 import { DEFAULT_REQUEST_TIMEOUT_MS } from '@backend/backendConstants.ts';
-import { launchSourceBackend, type LaunchedBackend } from '@backend/process/backendProcess.ts';
+import type { LaunchedBackend } from '@backend/process/backendProcess.ts';
 import { createMessageConnectionClient } from '@backend/client/messageConnectionClient.ts';
 import {
   isFatalBackendError,
@@ -40,45 +40,18 @@ export type BackendClientHandle = BackendClient & {
   dispose(): void;
 };
 
-/** Source-mode composition inputs: build from `repoRoot`, then run in `workspaceCwd`. */
-export type BackendClientSourceOptions = {
-  /** Repo root the backend binary is built from in source/dev mode. */
-  repoRoot: string;
-  /** Workspace directory the backend process runs in. */
-  workspaceCwd: string;
-};
-
+/** Composition inputs for the generic backend client: an injected process launcher. */
 export type BackendClientOptions = {
+  /** Produces a freshly launched backend process; source/packaged factories inject this. */
+  launch: () => Promise<LaunchedBackend>;
   requestTimeoutMs?: number;
-} & (
-  | (BackendClientSourceOptions & { launchTestOverride?: never })
-  | {
-      repoRoot?: never;
-      workspaceCwd?: never;
-      /** Test-only seam: supply a fake launched backend instead of building one. */
-      launchTestOverride: () => Promise<LaunchedBackend>;
-    }
-);
+};
 
 type BackendSession = {
   backend: LaunchedBackend;
   connection: MessageConnection;
   client: BackendClient;
 };
-
-/**
- * Resolves how a backend process is produced for a given client.
- *
- * Production builds from `repoRoot` and runs in `workspaceCwd`; tests inject a
- * fake through `launchTestOverride` to bypass the real build/spawn.
- */
-function resolveLaunch(options: BackendClientOptions): () => Promise<LaunchedBackend> {
-  if (options.launchTestOverride !== undefined) {
-    return options.launchTestOverride;
-  }
-  const { repoRoot, workspaceCwd } = options;
-  return () => launchSourceBackend({ repoRoot, workspaceCwd });
-}
 
 /**
  * Creates a JSON-RPC client over a launched child backend.
@@ -91,7 +64,7 @@ function resolveLaunch(options: BackendClientOptions): () => Promise<LaunchedBac
  */
 export function createBackendClient(options: BackendClientOptions): BackendClientHandle {
   const requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
-  const launch = resolveLaunch(options);
+  const { launch } = options;
 
   let state: BackendLifecycleState = BackendLifecycleState.Idle;
   let session: BackendSession | null = null;

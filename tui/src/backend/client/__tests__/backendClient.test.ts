@@ -17,6 +17,7 @@ import {
   BackendLifecycleState,
   createBackendClient
 } from '@backend/client/backendClient.ts';
+import { createSourceBackendClient } from '@backend/client/sourceBackendClient.ts';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..');
 const INTEGRATION_TIMEOUT_MS = 180_000;
@@ -80,7 +81,7 @@ describe('createBackendClient (fake backend)', () => {
   it('can prelaunch the backend before the first submit', async () => {
     const fake = makeFakeBackend(ack);
     const launch = vi.fn(async () => fake.launched);
-    const client = createBackendClient({ launchTestOverride: launch });
+    const client = createBackendClient({ launch });
 
     await client.ensureStarted();
 
@@ -95,7 +96,7 @@ describe('createBackendClient (fake backend)', () => {
 
   it('starts idle and becomes ready after a successful submit', async () => {
     const fake = makeFakeBackend(ack);
-    const client = createBackendClient({ launchTestOverride: async () => fake.launched });
+    const client = createBackendClient({ launch: async () => fake.launched });
 
     expect(client.getState()).toBe(BackendLifecycleState.Idle);
     const result = await client.submitMessage({ text: 'hello' });
@@ -112,7 +113,7 @@ describe('createBackendClient (fake backend)', () => {
       })
     );
     const launch = vi.fn(async () => fake.launched);
-    const client = createBackendClient({ launchTestOverride: launch });
+    const client = createBackendClient({ launch });
 
     await expect(client.submitMessage({ text: 'x' })).rejects.toMatchObject({
       kind: BackendErrorKind.Protocol
@@ -134,7 +135,7 @@ describe('createBackendClient (fake backend)', () => {
     const healthy = makeFakeBackend(ack);
     const backends = [hung, healthy];
     const launch = vi.fn(async () => backends.shift()?.launched as LaunchedBackend);
-    const client = createBackendClient({ launchTestOverride: launch, requestTimeoutMs: 100 });
+    const client = createBackendClient({ launch, requestTimeoutMs: 100 });
 
     await expect(client.submitMessage({ text: 'first' })).rejects.toMatchObject({
       kind: BackendErrorKind.Timeout
@@ -151,7 +152,7 @@ describe('createBackendClient (fake backend)', () => {
 
   it('marks the client dead when the backend process exits', async () => {
     const fake = makeFakeBackend(ack);
-    const client = createBackendClient({ launchTestOverride: async () => fake.launched });
+    const client = createBackendClient({ launch: async () => fake.launched });
 
     await client.submitMessage({ text: 'alive' });
     expect(client.getState()).toBe(BackendLifecycleState.Ready);
@@ -170,7 +171,7 @@ describe('createBackendClient (fake backend)', () => {
           resolveLaunch = resolve;
         })
     );
-    const client = createBackendClient({ launchTestOverride: launch });
+    const client = createBackendClient({ launch });
 
     const submit = client.submitMessage({ text: 'race' });
     client.dispose();
@@ -182,11 +183,11 @@ describe('createBackendClient (fake backend)', () => {
   });
 });
 
-describe('createBackendClient (integration)', () => {
+describe('createSourceBackendClient (integration)', () => {
   it(
     'starts the Rust backend, submits, and receives the ACK with exact receivedText',
     async () => {
-      const client = createBackendClient({ repoRoot, workspaceCwd: repoRoot });
+      const client = createSourceBackendClient({ repoRoot, workspaceCwd: repoRoot });
       try {
         const result = await client.submitMessage({ text: '  café\n☕  ' });
         expect(result.message).toBe(ACK_MESSAGE);
