@@ -11,7 +11,7 @@ import {
   printableInput,
   setComposerValidationErrorAtom,
   validateComposerSubmit
-} from '@state/composerAtoms.js';
+} from '@state/composer/index.js';
 
 type PromptComposerInputState = {
   cursorIndex: number;

@@ -1,13 +1,15 @@
 import { render } from 'ink-testing-library';
+import { createStore } from 'jotai';
 import { describe, expect, it } from 'vitest';
+import { App } from '@/App.js';
 import { BodyPane } from '@components/BodyPane.js';
-import { formatDisplayCwd } from '@components/CwdLine.js';
-import { HomeScreen } from '@components/HomeScreen/index.js';
-import { PROMPT_MAX_BYTES } from '@state/composerAtoms.js';
-import { createHomeScreenConfig } from '@state/homeScreenAtoms.js';
-import type { HomeScreenOptions } from '@state/homeScreenAtoms.js';
+import { formatDisplayCwd } from '@libs/tui/cwdLine.js';
+import { PROMPT_MAX_BYTES } from '@state/composer/index.js';
+import type { HomeScreenOptions } from '@state/global/index.js';
+import { seedScreenState } from '@state/global/index.js';
 import { flushInput } from '@test/flushInput.js';
-import { geminiDarkTheme } from '@theme/themeConfig.js';
+import { renderWithJotai } from '@test/renderWithJotai.js';
+import { theme } from '@theme/themeConfig.js';
 
 const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\KQode';
 
@@ -16,14 +18,19 @@ function renderHomeScreen({
   workspaceCwd: screenWorkspaceCwd = workspaceCwd,
   ...options
 }: Partial<HomeScreenOptions> = {}) {
-  return render(
-    <HomeScreen
-      config={createHomeScreenConfig({
-        productVersion,
-        workspaceCwd: screenWorkspaceCwd,
-        ...options
-      })}
-    />
+  const screen = {
+    productVersion,
+    workspaceCwd: screenWorkspaceCwd,
+    ...options
+  };
+  const store = createStore();
+  seedScreenState(store, screen, {
+    windowColumns: screen.columns,
+    windowRows: screen.rows
+  });
+  return renderWithJotai(
+    <App />,
+    store
   );
 }
 
@@ -57,15 +64,15 @@ describe('HomeScreen', () => {
 
     expect(output).toContain('~\\Projects\\KQode\\target\\kqode-test-workspaces\\workspace');
     expect(output).toContain('target\\kqode-test-workspaces\\workspace');
-    expect(output).not.toContain('tui');
+    expect(output).not.toContain('~\\Projects\\KQode\\tui');
   });
 
-  it('centralizes Gemini dark theme tokens including error red', () => {
-    expect(geminiDarkTheme.colors.foreground).toBe('#FFFFFF');
-    expect(geminiDarkTheme.colors.muted).toBe('#AFAFAF');
-    expect(geminiDarkTheme.colors.accentBlue).toBe('#87AFFF');
-    expect(geminiDarkTheme.colors.errorRed).toBe('#FF87AF');
-    expect(geminiDarkTheme.colors.messageBackground).toBe('#5F5F5F');
+  it('centralizes Dracula theme tokens including error red', () => {
+    expect(theme.colors.foreground).toBe('#F8F8F2');
+    expect(theme.colors.muted).toBe('#6272A4');
+    expect(theme.colors.accentBlue).toBe('#8BE9FD');
+    expect(theme.colors.errorRed).toBe('#FF5555');
+    expect(theme.colors.messageBackground).toBe('#44475A');
 
     const { lastFrame } = render(
       <BodyPane rows={3} columns={80} entries={[{ kind: 'error', text: 'backend failed' }]} />

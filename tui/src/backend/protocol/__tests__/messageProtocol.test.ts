@@ -6,9 +6,9 @@ import {
   StreamMessageWriter
 } from 'vscode-jsonrpc/node';
 import { ErrorCodes, type MessageConnection, ResponseError } from 'vscode-jsonrpc';
-import { BackendClientError, BackendErrorKind } from '@libs/backend/backendClient.js';
-import { createMessageConnectionClient } from '@libs/backend/messageConnectionClient.js';
-import { ACK_MESSAGE, messageSubmitRequest } from '@libs/backend/messageProtocol.js';
+import { BackendClientError, BackendErrorKind } from '@backend/client/backendClient.js';
+import { createMessageConnectionClient } from '@backend/client/messageConnectionClient.js';
+import { ACK_MESSAGE, messageSubmitRequest } from '@backend/protocol/messageProtocol.js';
 
 type PairedConnections = {
   client: MessageConnection;

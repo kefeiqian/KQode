@@ -8,14 +8,14 @@ import {
   StreamMessageReader,
   StreamMessageWriter
 } from 'vscode-jsonrpc/node';
-import { BackendClientError, BackendErrorKind } from '@libs/backend/backendClient.js';
-import { launchSourceBackend, type LaunchedBackend } from '@libs/backend/backendProcess.js';
-import { ACK_MESSAGE, messageSubmitRequest } from '@libs/backend/messageProtocol.js';
-import type { MessageSubmitResult } from '@libs/backend/messageProtocol.js';
+import { BackendClientError, BackendErrorKind } from '@backend/client/backendClient.js';
+import { launchSourceBackend, type LaunchedBackend } from '@backend/process/backendProcess.js';
+import { ACK_MESSAGE, messageSubmitRequest } from '@backend/protocol/messageProtocol.js';
+import type { MessageSubmitResult } from '@backend/protocol/messageProtocol.js';
 import {
   BackendLifecycleState,
   createProcessBackendClient
-} from '@libs/backend/processBackendClient.js';
+} from '@backend/client/processBackendClient.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..');
 const INTEGRATION_TIMEOUT_MS = 180_000;
@@ -76,6 +76,22 @@ afterEach(() => {
 });
 
 describe('createProcessBackendClient (fake backend)', () => {
+  it('can prelaunch the backend before the first submit', async () => {
+    const fake = makeFakeBackend(ack);
+    const launch = vi.fn(async () => fake.launched);
+    const client = createProcessBackendClient({ launch });
+
+    await client.ensureStarted();
+
+    expect(client.getState()).toBe(BackendLifecycleState.Ready);
+    expect(launch).toHaveBeenCalledTimes(1);
+
+    const result = await client.submitMessage({ text: 'hello' });
+    expect(result).toEqual({ message: ACK_MESSAGE, receivedText: 'hello' });
+    expect(launch).toHaveBeenCalledTimes(1);
+    client.dispose();
+  });
+
   it('starts idle and becomes ready after a successful submit', async () => {
     const fake = makeFakeBackend(ack);
     const client = createProcessBackendClient({ launch: async () => fake.launched });

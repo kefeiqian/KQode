@@ -1,24 +1,10 @@
 import { atom } from 'jotai';
 import type { Getter, Setter } from 'jotai';
-import { BackendClientError } from '@libs/backend/backendClient.js';
 import { sanitizeDisplayText } from '@libs/text/sanitizeDisplayText.js';
-import type { BodyEntry } from '@libs/tui/bodyRows.js';
-import {
-  bodyScrollOffsetRowsAtom,
-  homeScreenConfigAtom,
-  submittedPromptEntriesAtom
-} from '@state/homeScreenAtoms.js';
-
-type QueueItemState = 'active' | 'queued' | 'settled';
-
-type BackendResult = { kind: 'success' | 'error'; text: string };
-
-type QueueItem = {
-  id: number;
-  text: string;
-  state: QueueItemState;
-  result?: BackendResult;
-};
+import { backendClientAtom } from '@state/global/index.js';
+import { bodyScrollOffsetRowsAtom, submittedPromptEntriesAtom } from '@state/homeScreen/index.js';
+import { backendErrorMessage, queueToBodyEntries } from '@state/backend/bodyEntries.js';
+import type { BackendResult, QueueItem } from '@state/backend/bodyEntries.js';
 
 let nextQueueItemId = 0;
 
@@ -71,7 +57,7 @@ async function runBackendRequest(
   get: Getter,
   text: string
 ): Promise<BackendResult | undefined> {
-  const backendClient = get(homeScreenConfigAtom).backendClient;
+  const backendClient = get(backendClientAtom);
   if (backendClient === undefined) {
     return undefined;
   }
@@ -115,25 +101,4 @@ function findActive(get: Getter): QueueItem | undefined {
 
 function syncBodyEntries(get: Getter, set: Setter): void {
   set(submittedPromptEntriesAtom, queueToBodyEntries(get(promptQueueAtom)));
-}
-
-function queueToBodyEntries(queue: readonly QueueItem[]): BodyEntry[] {
-  return queue.flatMap((item) => {
-    const promptText = sanitizeDisplayText(item.text);
-    const promptEntry: BodyEntry =
-      item.state === 'queued'
-        ? { id: `prompt-${item.id}`, kind: 'pending', text: promptText }
-        : { id: `prompt-${item.id}`, kind: 'prompt', text: promptText };
-
-    return item.result === undefined
-      ? [promptEntry]
-      : [promptEntry, { id: `result-${item.id}`, kind: item.result.kind, text: item.result.text }];
-  });
-}
-
-function backendErrorMessage(error: unknown): string {
-  if (error instanceof BackendClientError) {
-    return `Rust backend failed: ${error.message}`;
-  }
-  return `Rust backend failed: ${error instanceof Error ? error.message : String(error)}`;
 }

@@ -1,17 +1,23 @@
-import { render } from 'ink-testing-library';
+import { createStore } from 'jotai';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from '@/App.js';
-import { BackendClientError, BackendErrorKind } from '@libs/backend/backendClient.js';
-import type { BackendClient } from '@libs/backend/backendClient.js';
-import { ACK_MESSAGE } from '@libs/backend/messageProtocol.js';
-import type { MessageSubmitParams, MessageSubmitResult } from '@libs/backend/messageProtocol.js';
+import { BackendClientError, BackendErrorKind } from '@backend/client/backendClient.js';
+import type { BackendClient } from '@backend/client/backendClient.js';
+import { ACK_MESSAGE } from '@backend/protocol/messageProtocol.js';
+import type { MessageSubmitParams, MessageSubmitResult } from '@backend/protocol/messageProtocol.js';
+import { seedScreenState } from '@state/global/index.js';
 import { flushInput } from '@test/flushInput.js';
+import { renderWithJotai } from '@test/renderWithJotai.js';
 
 const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\dummy-react-app';
 
 function renderApp(backendClient: BackendClient, columns = 80, rows = 40) {
-  return render(
-    <App screen={{ productVersion: '0.1.0', workspaceCwd, columns, rows, backendClient }} />
+  const screen = { productVersion: '0.1.0', workspaceCwd, columns, rows, backendClient };
+  const store = createStore();
+  seedScreenState(store, screen, { windowColumns: columns, windowRows: rows });
+  return renderWithJotai(
+    <App />,
+    store
   );
 }
 

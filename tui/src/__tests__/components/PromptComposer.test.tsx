@@ -3,7 +3,7 @@ import {
   formatVisiblePrompt,
   PromptComposer,
   resolveComposerCursorPosition
-} from '@components/PromptComposer.js';
+} from '@components/PromptComposer/index.js';
 import { flushInput } from '@test/flushInput.js';
 import { renderWithJotai } from '@test/renderWithJotai.js';
 

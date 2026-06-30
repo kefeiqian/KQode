@@ -2,13 +2,13 @@ import path from 'node:path';
 import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { BackendErrorKind } from '@libs/backend/backendClient.js';
+import { BackendErrorKind } from '@backend/client/backendClient.js';
 import {
   launchSourceBackend,
   spawnBackend,
   type LaunchedBackend
-} from '@libs/backend/backendProcess.js';
-import { ACK_MESSAGE, MESSAGE_SUBMIT_METHOD } from '@libs/backend/messageProtocol.js';
+} from '@backend/process/backendProcess.js';
+import { ACK_MESSAGE, MESSAGE_SUBMIT_METHOD } from '@backend/protocol/messageProtocol.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..');
 const INTEGRATION_TIMEOUT_MS = 180_000;

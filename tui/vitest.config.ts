@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': srcRoot,
+      '@backend': path.join(srcRoot, 'backend'),
       '@components': path.join(srcRoot, 'components'),
       '@libs': path.join(srcRoot, 'libs'),
       '@state': path.join(srcRoot, 'state'),

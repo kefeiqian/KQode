@@ -13,6 +13,7 @@
     "skipLibCheck": true,
     "paths": {
       "@/*": ["./src/*"],
+      "@backend/*": ["./src/backend/*"],
       "@components/*": ["./src/components/*"],
       "@libs/*": ["./src/libs/*"],
       "@state/*": ["./src/state/*"],

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildHardenedEnv } from '@libs/backend/processEnv.js';
+import { buildHardenedEnv } from '@backend/process/processEnv.js';
 
 const unixSource: NodeJS.ProcessEnv = {
   PATH: '/usr/bin',

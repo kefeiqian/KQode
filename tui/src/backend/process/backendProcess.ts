@@ -1,10 +1,10 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import type { Readable, Writable } from 'node:stream';
-import { BackendClientError, BackendErrorKind } from '@libs/backend/backendClient.js';
-import { buildBackend, resolveBackendBinaryPath } from '@libs/backend/backendBuild.js';
-import { BACKEND_MODE_ARG, DEFAULT_STARTUP_TIMEOUT_MS } from '@libs/backend/backendConstants.js';
-import { buildHardenedEnv } from '@libs/backend/processEnv.js';
-import { killProcessTree } from '@libs/backend/processUtils.js';
+import { BackendClientError, BackendErrorKind } from '@backend/client/backendClient.js';
+import { buildBackend, resolveBackendBinaryPath } from '@backend/process/backendBuild.js';
+import { BACKEND_MODE_ARG, DEFAULT_STARTUP_TIMEOUT_MS } from '@backend/backendConstants.js';
+import { buildHardenedEnv } from '@backend/process/processEnv.js';
+import { killProcessTree } from '@backend/process/processUtils.js';
 
 /** How a launched backend process ended. */
 export type BackendExit = { code: number | null; signal: NodeJS.Signals | null };

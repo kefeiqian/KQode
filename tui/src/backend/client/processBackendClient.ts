@@ -4,12 +4,12 @@ import {
   StreamMessageReader,
   StreamMessageWriter
 } from 'vscode-jsonrpc/node';
-import { BackendClientError, BackendErrorKind } from '@libs/backend/backendClient.js';
-import type { BackendClient } from '@libs/backend/backendClient.js';
-import { DEFAULT_REQUEST_TIMEOUT_MS } from '@libs/backend/backendConstants.js';
-import type { LaunchedBackend } from '@libs/backend/backendProcess.js';
-import { createMessageConnectionClient } from '@libs/backend/messageConnectionClient.js';
-import type { MessageSubmitParams, MessageSubmitResult } from '@libs/backend/messageProtocol.js';
+import { BackendClientError, BackendErrorKind } from '@backend/client/backendClient.js';
+import type { BackendClient } from '@backend/client/backendClient.js';
+import { DEFAULT_REQUEST_TIMEOUT_MS } from '@backend/backendConstants.js';
+import type { LaunchedBackend } from '@backend/process/backendProcess.js';
+import { createMessageConnectionClient } from '@backend/client/messageConnectionClient.js';
+import type { MessageSubmitParams, MessageSubmitResult } from '@backend/protocol/messageProtocol.js';
 
 /** Lifecycle of the TUI-owned backend connection. */
 export const BackendLifecycleState = {
@@ -31,6 +31,7 @@ export type BackendLifecycleState =
 /** Process-backed {@link BackendClient} that owns one child backend at a time. */
 export type ProcessBackendClient = BackendClient & {
   getState(): BackendLifecycleState;
+  ensureStarted(): Promise<void>;
   dispose(): void;
 };
 
@@ -134,6 +135,9 @@ export function createProcessBackendClient({
 
   return {
     getState: () => state,
+    async ensureStarted(): Promise<void> {
+      await ensureSession();
+    },
     async submitMessage(params: MessageSubmitParams): Promise<MessageSubmitResult> {
       const active = await ensureSession();
       try {

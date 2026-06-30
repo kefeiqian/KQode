@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BackendErrorKind } from '@libs/backend/backendClient.js';
-import { buildBackend, resolveBackendBinaryPath } from '@libs/backend/backendBuild.js';
+import { BackendErrorKind } from '@backend/client/backendClient.js';
+import { buildBackend, resolveBackendBinaryPath } from '@backend/process/backendBuild.js';
 
 describe('resolveBackendBinaryPath', () => {
   it('uses platform-correct debug executable naming', () => {

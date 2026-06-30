@@ -1,4 +1,4 @@
-import type { MessageSubmitParams, MessageSubmitResult } from '@libs/backend/messageProtocol.js';
+import type { MessageSubmitParams, MessageSubmitResult } from '@backend/protocol/messageProtocol.js';
 
 /** Backend failure categories surfaced to the TUI. */
 export const BackendErrorKind = {
