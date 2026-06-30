@@ -6,7 +6,12 @@ import { startBackendRuntime } from '@backend/runtime/backendRuntime.ts';
 import { resolveRepoRoot, resolveWorkspaceCwd } from '@libs/path/runtimePaths.ts';
 import { PRODUCT_NAME, resolveProductVersion } from '@libs/product/productMetadata.ts';
 import { setTerminalWindowTitle } from '@libs/terminal/windowTitle.ts';
+import {
+  resetTerminalBackground,
+  setTerminalBackground
+} from '@libs/terminal/terminalBackground.ts';
 import { productVersionAtom, repoRootAtom, workspaceCwdAtom } from '@state/global/index.ts';
+import { theme } from '@theme/themeConfig.ts';
 
 type Store = ReturnType<typeof createStore>;
 
@@ -50,7 +55,22 @@ export async function createAppRuntime({ entryUrl }: { entryUrl: string }): Prom
 
   store.set(productVersionAtom, productVersion);
   setTerminalWindowTitle(PRODUCT_NAME, productVersion);
+  setTerminalBackground(theme.colors.bodyBackground);
 
-  const dispose = startBackendRuntime(store, client);
+  const disposeBackend = startBackendRuntime(store, client);
+
+  // Restore the user's terminal background on clean shutdown and on hard exit
+  // (Ctrl+C / crash) so the OSC 11 override never outlives the session. The
+  // `exit` listener is the safety net; `dispose` removes it on the clean path
+  // to avoid a redundant reset.
+  const restoreBackground = () => resetTerminalBackground();
+  process.once('exit', restoreBackground);
+
+  const dispose = () => {
+    process.removeListener('exit', restoreBackground);
+    disposeBackend();
+    restoreBackground();
+  };
+
   return { store, dispose };
 }
