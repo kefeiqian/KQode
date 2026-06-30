@@ -1,6 +1,6 @@
-import { BackendClientError } from '@contracts/backend/index.js';
-import { sanitizeDisplayText } from '@libs/text/sanitizeDisplayText.js';
-import type { BodyEntry } from '@libs/tui/bodyRows.js';
+import { BackendClientError } from '@contracts/backend/index.ts';
+import { sanitizeDisplayText } from '@libs/text/sanitizeDisplayText.ts';
+import type { BodyEntry } from '@libs/tui/bodyRows.ts';
 
 export type QueueItemState = 'active' | 'queued' | 'settled';
 

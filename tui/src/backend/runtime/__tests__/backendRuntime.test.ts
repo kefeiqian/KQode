@@ -1,9 +1,9 @@
 import { createStore } from 'jotai';
 import { describe, expect, it, vi } from 'vitest';
-import { backendClientAtom } from '@state/global/backend.js';
-import { BACKEND_LOADING_HINT, startupStatusHintAtom } from '@state/global/statusHint.js';
-import { startBackendRuntime } from '@backend/runtime/backendRuntime.js';
-import type { RuntimeBackendClient } from '@backend/runtime/backendRuntime.js';
+import { backendClientAtom } from '@state/global/backend.ts';
+import { BACKEND_LOADING_HINT, startupStatusHintAtom } from '@state/global/statusHint.ts';
+import { startBackendRuntime } from '@backend/runtime/backendRuntime.ts';
+import type { RuntimeBackendClient } from '@backend/runtime/backendRuntime.ts';
 
 function fakeClient(overrides: Partial<RuntimeBackendClient> = {}): RuntimeBackendClient {
   return {

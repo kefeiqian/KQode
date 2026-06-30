@@ -1,5 +1,5 @@
 import { atom } from 'jotai';
-import { overLimitMessage, PROMPT_MAX_BYTES } from '@state/composer/text.js';
+import { overLimitMessage, PROMPT_MAX_BYTES } from '@state/composer/text.ts';
 
 export type ComposerState = {
   text: string;

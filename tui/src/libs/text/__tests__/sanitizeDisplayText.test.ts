@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DISPLAY_OUTPUT_MAX_BYTES,
   sanitizeDisplayText
-} from '@libs/text/sanitizeDisplayText.js';
+} from '@libs/text/sanitizeDisplayText.ts';
 
 describe('sanitizeDisplayText', () => {
   it('preserves plain text, Unicode, tabs, and newlines', () => {

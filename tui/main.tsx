@@ -2,12 +2,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render } from 'ink';
 import { createStore, Provider } from 'jotai';
-import { App } from '@/App.js';
-import { createBackendClient } from '@backend/client/backendClient.js';
-import { resolveRepoRoot, resolveWorkspaceCwd } from '@libs/path/runtimePaths.js';
-import { readProductVersion } from '@libs/product/productMetadata.js';
-import { startBackendRuntime } from '@backend/runtime/backendRuntime.js';
-import { productVersionAtom, repoRootAtom, workspaceCwdAtom } from '@state/global/index.js';
+import { App } from '@/App.tsx';
+import { createBackendClient } from '@backend/client/backendClient.ts';
+import { resolveRepoRoot, resolveWorkspaceCwd } from '@libs/path/runtimePaths.ts';
+import { readProductVersion } from '@libs/product/productMetadata.ts';
+import { startBackendRuntime } from '@backend/runtime/backendRuntime.ts';
+import { productVersionAtom, repoRootAtom, workspaceCwdAtom } from '@state/global/index.ts';
 
 const tuiPackageRoot = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolveRepoRoot(tuiPackageRoot);

@@ -3,9 +3,9 @@ import {
   formatVisiblePrompt,
   PromptComposer,
   resolveComposerCursorPosition
-} from '@components/PromptComposer/index.js';
-import { flushInput } from '@test/flushInput.js';
-import { renderWithJotai } from '@test/renderWithJotai.js';
+} from '@components/PromptComposer/index.tsx';
+import { flushInput } from '@test/flushInput.ts';
+import { renderWithJotai } from '@test/renderWithJotai.tsx';
 
 describe('PromptComposer', () => {
   it('preserves long prompt content while rendering a wrapped visible view', () => {

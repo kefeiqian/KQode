@@ -1,8 +1,8 @@
 import { Box, Text } from 'ink';
 import { useAtomValue } from 'jotai';
-import { formatCwdLine } from '@libs/tui/cwdLine.js';
-import { gitStatusLabelAtom, workspaceCwdAtom } from '@state/global/index.js';
-import { theme } from '@theme/themeConfig.js';
+import { formatCwdLine } from '@libs/tui/cwdLine.ts';
+import { gitStatusLabelAtom, workspaceCwdAtom } from '@state/global/index.ts';
+import { theme } from '@theme/themeConfig.ts';
 
 export function CwdLine() {
   const workspaceCwd = useAtomValue(workspaceCwdAtom);

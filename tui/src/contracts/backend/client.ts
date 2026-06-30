@@ -1,4 +1,4 @@
-import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backend/messages.js';
+import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backend/messages.ts';
 
 /**
  * Consumer-facing backend seam shared by the `@state` and `@backend` layers.

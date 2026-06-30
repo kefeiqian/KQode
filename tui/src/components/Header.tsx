@@ -1,8 +1,8 @@
 import { Box, Text } from 'ink';
 import { useAtomValue } from 'jotai';
-import { COMPACT_HEADER_BELOW_COLUMNS, HIDE_HEADER_BELOW_COLUMNS } from '@libs/tui/layout.js';
-import { columnsAtom, productVersionAtom } from '@state/global/index.js';
-import { theme } from '@theme/themeConfig.js';
+import { COMPACT_HEADER_BELOW_COLUMNS, HIDE_HEADER_BELOW_COLUMNS } from '@libs/tui/layout.ts';
+import { columnsAtom, productVersionAtom } from '@state/global/index.ts';
+import { theme } from '@theme/themeConfig.ts';
 
 export function Header() {
   const columns = useAtomValue(columnsAtom);

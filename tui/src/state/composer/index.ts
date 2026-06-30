@@ -1,2 +1,2 @@
-export * from '@state/composer/atoms.js';
-export * from '@state/composer/text.js';
+export * from '@state/composer/atoms.ts';
+export * from '@state/composer/text.ts';

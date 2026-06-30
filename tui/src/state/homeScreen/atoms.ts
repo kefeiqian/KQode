@@ -1,20 +1,20 @@
 import { atom } from 'jotai';
-import { countBodyRows, DEFAULT_BODY_ENTRIES } from '@libs/tui/bodyRows.js';
-import type { BodyEntry } from '@libs/tui/bodyRows.js';
-import { countCwdRows } from '@libs/tui/cwdLine.js';
-import { headerRowCount } from '@libs/tui/layout.js';
+import { countBodyRows, DEFAULT_BODY_ENTRIES } from '@libs/tui/bodyRows.ts';
+import type { BodyEntry } from '@libs/tui/bodyRows.ts';
+import { countCwdRows } from '@libs/tui/cwdLine.ts';
+import { headerRowCount } from '@libs/tui/layout.ts';
 import {
   bodyEntriesAtom,
   columnsAtom,
   gitStatusLabelAtom,
   rowsAtom,
   workspaceCwdAtom
-} from '@state/global/index.js';
+} from '@state/global/index.ts';
 import {
   BODY_CWD_GAP_ROWS,
   DEFAULT_COMPOSER_ROWS,
   resolveHomeScreenLayout
-} from '@state/homeScreen/layout.js';
+} from '@state/homeScreen/layout.ts';
 
 export const bodyScrollOffsetRowsAtom = atom(0);
 export const composerRowsAtom = atom(DEFAULT_COMPOSER_ROWS);

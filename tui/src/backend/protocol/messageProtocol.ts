@@ -1,6 +1,6 @@
 import { RequestType } from 'vscode-jsonrpc';
-import { MESSAGE_SUBMIT_METHOD } from '@contracts/backend/index.js';
-import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backend/index.js';
+import { MESSAGE_SUBMIT_METHOD } from '@contracts/backend/index.ts';
+import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backend/index.ts';
 
 /**
  * Typed request descriptor for `kqode.message.submit`.

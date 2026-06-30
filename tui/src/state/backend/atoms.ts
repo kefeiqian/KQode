@@ -1,10 +1,10 @@
 import { atom } from 'jotai';
 import type { Getter, Setter } from 'jotai';
-import { sanitizeDisplayText } from '@libs/text/sanitizeDisplayText.js';
-import { backendClientAtom } from '@state/global/index.js';
-import { bodyScrollOffsetRowsAtom, submittedPromptEntriesAtom } from '@state/homeScreen/index.js';
-import { backendErrorMessage, queueToBodyEntries } from '@state/backend/bodyEntries.js';
-import type { BackendResult, QueueItem } from '@state/backend/bodyEntries.js';
+import { sanitizeDisplayText } from '@libs/text/sanitizeDisplayText.ts';
+import { backendClientAtom } from '@state/global/index.ts';
+import { bodyScrollOffsetRowsAtom, submittedPromptEntriesAtom } from '@state/homeScreen/index.ts';
+import { backendErrorMessage, queueToBodyEntries } from '@state/backend/bodyEntries.ts';
+import type { BackendResult, QueueItem } from '@state/backend/bodyEntries.ts';
 
 let nextQueueItemId = 0;
 

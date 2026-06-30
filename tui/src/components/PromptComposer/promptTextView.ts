@@ -1,4 +1,4 @@
-import { COMPOSER_BACKGROUND_PADDING_ROWS } from '@components/PromptComposer/constants.js';
+import { COMPOSER_BACKGROUND_PADDING_ROWS } from '@components/PromptComposer/constants.ts';
 
 type WrappedPromptRow = {
   text: string;

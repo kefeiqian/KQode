@@ -1,14 +1,14 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.js';
+import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
 import {
   BUILD_STDERR_CAP_BYTES,
   CARGO_BINARY_NAME,
   CARGO_COMMAND,
   DEFAULT_BUILD_TIMEOUT_MS
-} from '@backend/backendConstants.js';
-import { buildHardenedEnv } from '@backend/process/processEnv.js';
-import { CappedBuffer, killProcessTree } from '@backend/process/processUtils.js';
+} from '@backend/backendConstants.ts';
+import { buildHardenedEnv } from '@backend/process/processEnv.ts';
+import { CappedBuffer, killProcessTree } from '@backend/process/processUtils.ts';
 
 /** Resolves the debug-profile backend binary path with platform-correct naming. */
 export function resolveBackendBinaryPath(repoRoot: string, platform = process.platform): string {

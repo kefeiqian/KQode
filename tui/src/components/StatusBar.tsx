@@ -5,8 +5,8 @@ import {
   columnsAtom,
   modelLabelAtom,
   statusHintAtom
-} from '@state/global/index.js';
-import { theme } from '@theme/themeConfig.js';
+} from '@state/global/index.ts';
+import { theme } from '@theme/themeConfig.ts';
 
 export function StatusBar() {
   const columns = useAtomValue(columnsAtom);

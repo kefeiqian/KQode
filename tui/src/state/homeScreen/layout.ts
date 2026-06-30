@@ -1,4 +1,4 @@
-import { headerRowCount } from '@libs/tui/layout.js';
+import { headerRowCount } from '@libs/tui/layout.ts';
 
 export const DEFAULT_COMPOSER_ROWS = 3;
 export const BODY_CWD_GAP_ROWS = 1;

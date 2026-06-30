@@ -2,7 +2,7 @@ import {
   COMPOSER_BACKGROUND_TOP_PADDING_ROWS,
   INK_CURSOR_ROW_ORIGIN_OFFSET,
   PROMPT_PREFIX
-} from '@components/PromptComposer/constants.js';
+} from '@components/PromptComposer/constants.ts';
 
 export function resolveComposerCursorPosition(
   visibleText: string,

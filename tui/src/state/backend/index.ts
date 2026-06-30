@@ -1,1 +1,1 @@
-export * from '@state/backend/atoms.js';
+export * from '@state/backend/atoms.ts';

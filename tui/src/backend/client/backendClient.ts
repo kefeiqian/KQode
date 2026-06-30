@@ -4,17 +4,17 @@ import {
   StreamMessageReader,
   StreamMessageWriter
 } from 'vscode-jsonrpc/node';
-import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.js';
-import type { BackendClient } from '@contracts/backend/index.js';
-import { DEFAULT_REQUEST_TIMEOUT_MS } from '@backend/backendConstants.js';
-import { launchSourceBackend, type LaunchedBackend } from '@backend/process/backendProcess.js';
-import { createMessageConnectionClient } from '@backend/client/messageConnectionClient.js';
+import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
+import type { BackendClient } from '@contracts/backend/index.ts';
+import { DEFAULT_REQUEST_TIMEOUT_MS } from '@backend/backendConstants.ts';
+import { launchSourceBackend, type LaunchedBackend } from '@backend/process/backendProcess.ts';
+import { createMessageConnectionClient } from '@backend/client/messageConnectionClient.ts';
 import {
   isFatalBackendError,
   toLaunchError,
   withRequestTimeout
-} from '@backend/client/backendClientErrors.js';
-import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backend/index.js';
+} from '@backend/client/backendClientErrors.ts';
+import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backend/index.ts';
 
 /** Lifecycle of the TUI-owned backend connection. */
 export const BackendLifecycleState = {

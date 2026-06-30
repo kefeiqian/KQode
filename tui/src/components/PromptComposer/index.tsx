@@ -2,23 +2,23 @@ import { Box, useBoxMetrics, useCursor } from 'ink';
 import { useAtomValue, useSetAtom } from 'jotai';
 import type { DOMElement } from 'ink';
 import { useEffect, useRef } from 'react';
-import { ComposerFrame } from '@components/PromptComposer/ComposerFrame.js';
-import { PROMPT_PREFIX } from '@components/PromptComposer/constants.js';
-import { resolveComposerCursorPosition } from '@components/PromptComposer/cursorPosition.js';
+import { ComposerFrame } from '@components/PromptComposer/ComposerFrame.tsx';
+import { PROMPT_PREFIX } from '@components/PromptComposer/constants.ts';
+import { resolveComposerCursorPosition } from '@components/PromptComposer/cursorPosition.ts';
 import {
   countVisibleComposerRows,
   formatVisiblePrompt,
   formatVisiblePromptView
-} from '@components/PromptComposer/promptTextView.js';
-import { usePromptComposerInput } from '@components/PromptComposer/usePromptComposerInput.js';
-import { DEFAULT_COMPOSER_VISIBLE_LINES } from '@libs/tui/layout.js';
-import { enqueuePromptAtom } from '@state/backend/index.js';
+} from '@components/PromptComposer/promptTextView.ts';
+import { usePromptComposerInput } from '@components/PromptComposer/usePromptComposerInput.ts';
+import { DEFAULT_COMPOSER_VISIBLE_LINES } from '@libs/tui/layout.ts';
+import { enqueuePromptAtom } from '@state/backend/index.ts';
 import {
   composerStateAtom,
   PROMPT_MAX_BYTES
-} from '@state/composer/index.js';
-import { composerRowsAtom, composerTopAtom, layoutAtom } from '@state/homeScreen/index.js';
-import { columnsAtom, inputLockedAtom } from '@state/global/index.js';
+} from '@state/composer/index.ts';
+import { composerRowsAtom, composerTopAtom, layoutAtom } from '@state/homeScreen/index.ts';
+import { columnsAtom, inputLockedAtom } from '@state/global/index.ts';
 
 type PromptComposerProps = {
   columns?: number;

@@ -1,11 +1,11 @@
 import { render } from 'ink-testing-library';
 import { createStore } from 'jotai';
 import { describe, expect, it } from 'vitest';
-import { App } from '@/App.js';
-import { BodyPane } from '@components/BodyPane.js';
-import { formatDisplayCwd } from '@libs/tui/cwdLine.js';
-import type { BodyEntry } from '@libs/tui/bodyRows.js';
-import { PROMPT_MAX_BYTES } from '@state/composer/index.js';
+import { App } from '@/App.tsx';
+import { BodyPane } from '@components/BodyPane.tsx';
+import { formatDisplayCwd } from '@libs/tui/cwdLine.ts';
+import type { BodyEntry } from '@libs/tui/bodyRows.ts';
+import { PROMPT_MAX_BYTES } from '@state/composer/index.ts';
 import {
   bodyEntriesAtom,
   columnsTestOverrideAtom,
@@ -13,10 +13,10 @@ import {
   productVersionAtom,
   rowsTestOverrideAtom,
   workspaceCwdAtom
-} from '@state/global/index.js';
-import { flushInput } from '@test/flushInput.js';
-import { renderWithJotai } from '@test/renderWithJotai.js';
-import { theme } from '@theme/themeConfig.js';
+} from '@state/global/index.ts';
+import { flushInput } from '@test/flushInput.ts';
+import { renderWithJotai } from '@test/renderWithJotai.tsx';
+import { theme } from '@theme/themeConfig.ts';
 
 const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\KQode';
 

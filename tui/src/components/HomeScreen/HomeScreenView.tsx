@@ -1,24 +1,24 @@
 import { Box, useInput, useStdout } from 'ink';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useEffect } from 'react';
-import { BodyPane } from '@components/BodyPane.js';
-import { CwdLine } from '@components/CwdLine.js';
-import { Header } from '@components/Header.js';
-import { PromptComposer } from '@components/PromptComposer/index.js';
-import { StatusBar } from '@components/StatusBar.js';
+import { BodyPane } from '@components/BodyPane.tsx';
+import { CwdLine } from '@components/CwdLine.tsx';
+import { Header } from '@components/Header.tsx';
+import { PromptComposer } from '@components/PromptComposer/index.tsx';
+import { StatusBar } from '@components/StatusBar.tsx';
 import {
   DISABLE_SGR_MOUSE_TRACKING,
   ENABLE_SGR_MOUSE_TRACKING,
   parseMouseWheelInput
-} from '@libs/terminal/mouse.js';
+} from '@libs/terminal/mouse.ts';
 import {
   BODY_CWD_GAP_ROWS,
   bottomSpacerRowsAtom,
   layoutAtom,
   scrollBodyByRowsAtom
-} from '@state/homeScreen/index.js';
-import { columnsAtom, rowsAtom } from '@state/global/index.js';
-import { theme } from '@theme/themeConfig.js';
+} from '@state/homeScreen/index.ts';
+import { columnsAtom, rowsAtom } from '@state/global/index.ts';
+import { theme } from '@theme/themeConfig.ts';
 
 const MOUSE_WHEEL_SCROLL_ROWS = 3;
 

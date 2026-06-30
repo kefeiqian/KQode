@@ -1,19 +1,19 @@
 import { createStore } from 'jotai';
 import { describe, expect, it, vi } from 'vitest';
-import { App } from '@/App.js';
-import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.js';
-import type { BackendClient } from '@contracts/backend/index.js';
-import { ACK_MESSAGE } from '@contracts/backend/index.js';
-import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backend/index.js';
+import { App } from '@/App.tsx';
+import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
+import type { BackendClient } from '@contracts/backend/index.ts';
+import { ACK_MESSAGE } from '@contracts/backend/index.ts';
+import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backend/index.ts';
 import {
   backendClientAtom,
   columnsTestOverrideAtom,
   productVersionAtom,
   rowsTestOverrideAtom,
   workspaceCwdAtom
-} from '@state/global/index.js';
-import { flushInput } from '@test/flushInput.js';
-import { renderWithJotai } from '@test/renderWithJotai.js';
+} from '@state/global/index.ts';
+import { flushInput } from '@test/flushInput.ts';
+import { renderWithJotai } from '@test/renderWithJotai.tsx';
 
 const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\dummy-react-app';
 

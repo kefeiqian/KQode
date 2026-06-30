@@ -1,2 +1,2 @@
-export * from '@state/homeScreen/atoms.js';
-export * from '@state/homeScreen/layout.js';
+export * from '@state/homeScreen/atoms.ts';
+export * from '@state/homeScreen/layout.ts';

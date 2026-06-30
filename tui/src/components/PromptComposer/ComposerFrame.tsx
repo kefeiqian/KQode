@@ -1,8 +1,8 @@
 import { Box, Text } from 'ink';
-import { LOWER_HALF_BLOCK, UPPER_HALF_BLOCK } from '@libs/tui/backgroundBlock.js';
-import { PROMPT_PREFIX } from '@components/PromptComposer/constants.js';
-import { formatValidationError } from '@components/PromptComposer/promptTextView.js';
-import { theme } from '@theme/themeConfig.js';
+import { LOWER_HALF_BLOCK, UPPER_HALF_BLOCK } from '@libs/tui/backgroundBlock.ts';
+import { PROMPT_PREFIX } from '@components/PromptComposer/constants.ts';
+import { formatValidationError } from '@components/PromptComposer/promptTextView.ts';
+import { theme } from '@theme/themeConfig.ts';
 
 type ComposerFrameProps = {
   columns: number;

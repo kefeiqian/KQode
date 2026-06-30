@@ -1,17 +1,17 @@
 import { Box, Text } from 'ink';
 import { useAtomValue } from 'jotai';
-import { DEFAULT_BODY_ENTRIES, resolveBodyRows } from '@libs/tui/bodyRows.js';
-import type { BodyEntry, BodyRow } from '@libs/tui/bodyRows.js';
+import { DEFAULT_BODY_ENTRIES, resolveBodyRows } from '@libs/tui/bodyRows.ts';
+import type { BodyEntry, BodyRow } from '@libs/tui/bodyRows.ts';
 import {
   bodyScrollOffsetRowsAtom,
   displayedBodyEntriesAtom,
   layoutAtom
-} from '@state/homeScreen/index.js';
-import { columnsAtom } from '@state/global/index.js';
-import { theme } from '@theme/themeConfig.js';
+} from '@state/homeScreen/index.ts';
+import { columnsAtom } from '@state/global/index.ts';
+import { theme } from '@theme/themeConfig.ts';
 
-export type { BodyEntry } from '@libs/tui/bodyRows.js';
-export { countBodyRows, DEFAULT_BODY_ENTRIES } from '@libs/tui/bodyRows.js';
+export type { BodyEntry } from '@libs/tui/bodyRows.ts';
+export { countBodyRows, DEFAULT_BODY_ENTRIES } from '@libs/tui/bodyRows.ts';
 
 type ScrollbarCell = {
   color: string;

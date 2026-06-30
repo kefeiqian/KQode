@@ -1,5 +1,5 @@
 import { atom } from 'jotai';
-import { DEFAULT_COLUMNS, DEFAULT_ROWS, MIN_ROWS } from '@libs/tui/layout.js';
+import { DEFAULT_COLUMNS, DEFAULT_ROWS, MIN_ROWS } from '@libs/tui/layout.ts';
 
 // Test-only seams that pin a deterministic viewport ahead of the live terminal
 // size; production never sets these, so columns/rows resolve to window ?? default.

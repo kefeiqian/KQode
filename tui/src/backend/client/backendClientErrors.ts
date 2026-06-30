@@ -1,4 +1,4 @@
-import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.js';
+import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
 
 /**
  * Rejects with a `timeout` error when `promise` outlives `timeoutMs`.

@@ -1,8 +1,8 @@
 import {
   LOWER_HALF_BLOCK,
   UPPER_HALF_BLOCK
-} from '@libs/tui/backgroundBlock.js';
-import { theme } from '@theme/themeConfig.js';
+} from '@libs/tui/backgroundBlock.ts';
+import { theme } from '@theme/themeConfig.ts';
 
 export type BodyEntry = {
   id?: string;

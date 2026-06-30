@@ -1,6 +1,6 @@
 import { atom } from 'jotai';
-import { readGitStatusLabel } from '@libs/git/gitStatus.js';
-import { workspaceCwdAtom } from '@state/global/workspace.js';
+import { readGitStatusLabel } from '@libs/git/gitStatus.ts';
+import { workspaceCwdAtom } from '@state/global/workspace.ts';
 
 // Test-only seam to pin a deterministic label; production reads real git status.
 export const gitStatusLabelTestOverrideAtom = atom<string | undefined>(undefined);

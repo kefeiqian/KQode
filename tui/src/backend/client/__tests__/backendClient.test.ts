@@ -8,15 +8,15 @@ import {
   StreamMessageReader,
   StreamMessageWriter
 } from 'vscode-jsonrpc/node';
-import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.js';
-import { type LaunchedBackend } from '@backend/process/backendProcess.js';
-import { ACK_MESSAGE } from '@contracts/backend/index.js';
-import { messageSubmitRequest } from '@backend/protocol/messageProtocol.js';
-import type { MessageSubmitResult } from '@contracts/backend/index.js';
+import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
+import { type LaunchedBackend } from '@backend/process/backendProcess.ts';
+import { ACK_MESSAGE } from '@contracts/backend/index.ts';
+import { messageSubmitRequest } from '@backend/protocol/messageProtocol.ts';
+import type { MessageSubmitResult } from '@contracts/backend/index.ts';
 import {
   BackendLifecycleState,
   createBackendClient
-} from '@backend/client/backendClient.js';
+} from '@backend/client/backendClient.ts';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..');
 const INTEGRATION_TIMEOUT_MS = 180_000;

@@ -1,14 +1,14 @@
 import { createStore } from 'jotai';
 import { describe, expect, it, vi } from 'vitest';
-import { App } from '@/App.js';
+import { App } from '@/App.tsx';
 import {
   columnsTestOverrideAtom,
   productVersionAtom,
   rowsTestOverrideAtom,
   workspaceCwdAtom
-} from '@state/global/index.js';
-import { flushInput } from '@test/flushInput.js';
-import { renderWithJotai } from '@test/renderWithJotai.js';
+} from '@state/global/index.ts';
+import { flushInput } from '@test/flushInput.ts';
+import { renderWithJotai } from '@test/renderWithJotai.tsx';
 
 const workspaceCwd = 'C:\\Users\\kefeiqian\\Projects\\dummy-react-app';
 
