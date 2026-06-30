@@ -104,6 +104,7 @@ For functions that can fail in non-obvious ways, include a `# Errors` section. U
 - Build model context from bounded fragments with source, token estimate, priority, expiry/persistence, and trace citation. Do not add unbounded repo dumps to prompt context.
 - Every meaningful coding task should end with a reviewable diff, check results, and final summary, and should produce trace evidence for model calls, tool calls, approvals, diffs, costs, and outcome.
 - Start evaluation with deterministic harness tests before provider or benchmark tests. The first golden tasks should dogfood KQode on this repository.
+- `docs/solutions/` holds documented solutions to past problems (bugs, best practices, workflow patterns), organized by category with YAML frontmatter (`module`, `tags`, `problem_type`); relevant when implementing or debugging in documented areas.
 
 ## Commit workflow
 
