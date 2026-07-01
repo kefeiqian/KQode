@@ -196,18 +196,19 @@ export async function materializePackagedBackend(
   ensureRuntimeDir(runtimeDir, platform);
   try {
     write(binaryPath, runtimeDir, bytes, platform);
+    if (sha256Hex(fs.readFileSync(binaryPath)) !== asset.sha256) {
+      throw materializationError('post-write integrity check failed');
+    }
+    return binaryPath;
   } catch (error) {
     // A concurrent instance of the same build may have materialized (and, on
-    // Windows, locked) the identical binary between our inspect and our write.
-    // Defer to it when the cache is now valid instead of failing the launch.
+    // Windows, locked) the identical binary between our inspect and our write —
+    // or replaced it in the brief atomic-replace gap our post-write read-back
+    // observed. Defer to it when the cache is now valid instead of failing the
+    // launch; genuine corruption leaves the cache invalid and still throws.
     if (inspectExisting(binaryPath, asset.sha256, platform) === 'reusable') {
       return binaryPath;
     }
     throw error;
   }
-
-  if (sha256Hex(fs.readFileSync(binaryPath)) !== asset.sha256) {
-    throw materializationError('post-write integrity check failed');
-  }
-  return binaryPath;
 }

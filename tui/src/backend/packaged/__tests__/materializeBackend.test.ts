@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
 import {
   materializePackagedBackend,
@@ -40,6 +40,7 @@ function asset(bytes: Buffer, sha = sha256(bytes)): EmbeddedBackendAsset & { cal
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
   while (tempDirs.length > 0) {
     fs.rmSync(tempDirs.pop() as string, { recursive: true, force: true });
   }
@@ -204,5 +205,50 @@ describe('materializePackagedBackend', () => {
         { writeBinary: failingWrite }
       )
     ).rejects.toThrow('ENOSPC');
+  });
+
+  it('reuses the cache when the post-write read hits a concurrent replace gap', async () => {
+    const cacheBaseDir = tempBase();
+    const bytes = Buffer.from('gap backend');
+    // The injected write leaves a genuinely valid binary (as a concurrent winner
+    // would)...
+    const write = (binaryPath: string, runtimeDir: string): void => {
+      fs.mkdirSync(runtimeDir, { recursive: true });
+      fs.writeFileSync(binaryPath, bytes);
+    };
+    // ...but the immediate post-write read-back observes the atomic-replace gap
+    // once (ENOENT), which must fall back to reusing the valid cache.
+    vi.spyOn(fs, 'readFileSync').mockImplementationOnce(() => {
+      const error: NodeJS.ErrnoException = new Error('ENOENT: file briefly absent');
+      error.code = 'ENOENT';
+      throw error;
+    });
+
+    const result = await materializePackagedBackend(
+      { asset: asset(bytes), version: '0.1.0', cacheBaseDir },
+      { writeBinary: write }
+    );
+
+    const expected = resolvePackagedBackendPaths({
+      version: '0.1.0',
+      sha256: sha256(bytes),
+      cacheBaseDir
+    }).binaryPath;
+    expect(result).toBe(expected);
+  });
+
+  it('fails closed when the post-write binary is corrupt and no valid cache exists', async () => {
+    const cacheBaseDir = tempBase();
+    const corruptWrite = (binaryPath: string, runtimeDir: string): void => {
+      fs.mkdirSync(runtimeDir, { recursive: true });
+      fs.writeFileSync(binaryPath, Buffer.from('corrupted on write'));
+    };
+
+    await expect(
+      materializePackagedBackend(
+        { asset: asset(Buffer.from('intended backend')), version: '0.1.0', cacheBaseDir },
+        { writeBinary: corruptWrite }
+      )
+    ).rejects.toThrow('post-write integrity check');
   });
 });
