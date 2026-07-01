@@ -77,6 +77,30 @@ just keep the repo public. In a private repo those labels fail (the required
 `kqode-linux-arm64` job would break the release), so you would need paid larger
 arm64 runners or would have to drop the arm64 targets.
 
+## Bumping the version
+
+The product version lives in root `Cargo.toml` (it is displayed and baked into
+the packaged binary), and must equal the release tag `v<version>`. Bump every
+manifest at once instead of editing them by hand:
+
+```bash
+cargo xtask set-version 0.2.0
+```
+
+This sets the version in root `Cargo.toml`, `xtask/Cargo.toml`,
+`packaging/npm/kqode/package.json`, and `tui/package.json`, and refreshes
+`Cargo.lock` (workspace members only). Then commit and tag to match:
+
+```bash
+git commit -am "chore: release v0.2.0"
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+The tag drives `release.yml` (which builds the archives + Release) and
+`npm-publish.yml` (which stamps the npm version from the tag). Keeping
+`Cargo.toml` equal to the tag ensures `kqode --version` matches the published
+release and npm version.
+
 ## 1. GitHub Release direct download
 
 1. Push a version tag to trigger `.github/workflows/release.yml`:

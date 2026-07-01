@@ -19,7 +19,29 @@ pub fn build_release_bin(repo_root: &Path, bin: &str) -> Result<(), String> {
     if status.success() {
         Ok(())
     } else {
-        Err(format!("cargo build --release --bin {bin} exited with {status}"))
+        Err(format!(
+            "cargo build --release --bin {bin} exited with {status}"
+        ))
+    }
+}
+
+/// Refreshes `Cargo.lock` so workspace members' locked versions match their
+/// manifests, without upgrading external dependencies.
+///
+/// # Errors
+///
+/// Returns an error when Cargo cannot be started or the command exits non-zero.
+pub fn update_workspace_lock(repo_root: &Path) -> Result<(), String> {
+    let status = Command::new(command())
+        .args(["update", "--workspace"])
+        .current_dir(repo_root)
+        .status()
+        .map_err(|error| format!("run cargo update --workspace: {error}"))?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("cargo update --workspace exited with {status}"))
     }
 }
 
