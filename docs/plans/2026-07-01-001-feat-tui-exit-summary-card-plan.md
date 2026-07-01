@@ -1,7 +1,7 @@
 ---
 title: "feat: TUI exit summary card and KQode emblem"
 type: feat
-status: active
+status: completed
 date: 2026-07-01
 origin: docs/brainstorms/2026-07-01-tui-exit-summary-card-requirements.md
 ---
