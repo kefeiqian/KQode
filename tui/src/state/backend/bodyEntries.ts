@@ -6,6 +6,9 @@ export type QueueItemState = 'active' | 'queued' | 'settled';
 
 export type BackendResult = { kind: 'success' | 'error'; text: string };
 
+/** Shown when a prompt is submitted with no backend client wired into the seam. */
+export const BACKEND_UNAVAILABLE_MESSAGE = 'Rust backend unavailable';
+
 export type QueueItem = {
   id: number;
   text: string;

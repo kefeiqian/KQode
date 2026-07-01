@@ -17,8 +17,10 @@ export type RuntimeBackendClient = BackendClient & {
  * The composition root owns the process: `client` is published through the narrow
  * `backendClientAtom` seam, the backend is started immediately behind the
  * `Loading backend` hint instead of lazily on the first prompt, and the returned
- * disposer lets the entry point tear the process down on exit. A failed start
- * disposes the client and clears the seam so the UI never looks connected.
+ * disposer tears the process down and clears the seam on exit. A failed start
+ * keeps the Dead-state client in the seam so the next submit retries via
+ * `ensureSession()` and, on repeat failure, surfaces a visible error entry
+ * instead of silently dropping the prompt.
  */
 export function startBackendRuntime(store: Store, client: RuntimeBackendClient): () => void {
   store.set(backendClientAtom, client);
@@ -27,8 +29,9 @@ export function startBackendRuntime(store: Store, client: RuntimeBackendClient):
   void client
     .ensureStarted()
     .catch(() => {
-      client.dispose();
-      store.set(backendClientAtom, undefined);
+      // Keep the Dead-state client in the seam (do not dispose or clear it): the
+      // next submit retries through ensureSession() and, on repeat failure,
+      // settles a visible backend-error entry rather than silently dropping it.
     })
     .finally(() => {
       store.set(startupStatusHintAtom, undefined);
@@ -36,5 +39,6 @@ export function startBackendRuntime(store: Store, client: RuntimeBackendClient):
 
   return () => {
     client.dispose();
+    store.set(backendClientAtom, undefined);
   };
 }

@@ -1,5 +1,5 @@
-import { RequestType } from 'vscode-jsonrpc';
-import { MESSAGE_SUBMIT_METHOD } from '@contracts/backend/index.ts';
+import { NotificationType0, RequestType } from 'vscode-jsonrpc';
+import { BACKEND_READY_METHOD, MESSAGE_SUBMIT_METHOD } from '@contracts/backend/index.ts';
 import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backend/index.ts';
 
 /**
@@ -12,3 +12,13 @@ import type { MessageSubmitParams, MessageSubmitResult } from '@contracts/backen
 export const messageSubmitRequest = new RequestType<MessageSubmitParams, MessageSubmitResult, void>(
   MESSAGE_SUBMIT_METHOD
 );
+
+/**
+ * Typed descriptor for the backend's one-shot readiness notification.
+ *
+ * The backend sends this parameterless notification the moment it can serve
+ * JSON-RPC; the client resolves startup on it (see `waitForBackendReady`). The
+ * method name comes from the same dependency-free `@contracts` seam so the Rust
+ * and TypeScript sides stay in lockstep.
+ */
+export const backendReadyNotification = new NotificationType0(BACKEND_READY_METHOD);

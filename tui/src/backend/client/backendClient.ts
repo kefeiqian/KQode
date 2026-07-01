@@ -1,14 +1,10 @@
 import { type MessageConnection } from 'vscode-jsonrpc';
-import {
-  createMessageConnection,
-  StreamMessageReader,
-  StreamMessageWriter
-} from 'vscode-jsonrpc/node';
 import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
 import type { BackendClient } from '@contracts/backend/index.ts';
-import { DEFAULT_REQUEST_TIMEOUT_MS } from '@backend/backendConstants.ts';
+import { DEFAULT_REQUEST_TIMEOUT_MS, DEFAULT_STARTUP_TIMEOUT_MS } from '@backend/backendConstants.ts';
 import type { LaunchedBackend } from '@backend/process/backendProcess.ts';
 import { createMessageConnectionClient } from '@backend/client/messageConnectionClient.ts';
+import { openReadyConnection } from '@backend/client/backendReadiness.ts';
 import {
   isFatalBackendError,
   toLaunchError,
@@ -45,6 +41,8 @@ export type BackendClientOptions = {
   /** Produces a freshly launched backend process; source/packaged factories inject this. */
   launch: () => Promise<LaunchedBackend>;
   requestTimeoutMs?: number;
+  /** Ceiling for the launched backend to signal JSON-RPC readiness before it is torn down. */
+  startupTimeoutMs?: number;
 };
 
 type BackendSession = {
@@ -61,14 +59,29 @@ type BackendSession = {
  * and mark the client `dead`. The next submit after `dead` respawns a fresh
  * backend (persisted session restore is added with the session methods), never
  * silently and never auto-replaying interrupted work.
+ *
+ * `dispose()` is terminal: once disposed, `ensureStarted`/`submitMessage` reject
+ * with a `launch`-kind {@link BackendClientError} without spawning a replacement,
+ * so a torn-down client can never orphan a new backend process.
  */
 export function createBackendClient(options: BackendClientOptions): BackendClientHandle {
   const requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+  const startupTimeoutMs = options.startupTimeoutMs ?? DEFAULT_STARTUP_TIMEOUT_MS;
   const { launch } = options;
 
   let state: BackendLifecycleState = BackendLifecycleState.Idle;
   let session: BackendSession | null = null;
   let starting: Promise<BackendSession> | null = null;
+  let disposed = false;
+
+  const disposedError = (): BackendClientError =>
+    new BackendClientError(BackendErrorKind.Launch, 'backend client disposed');
+
+  const abortedError = (): BackendClientError =>
+    new BackendClientError(
+      BackendErrorKind.Launch,
+      'backend launch was aborted before it became ready'
+    );
 
   const teardown = (nextState: BackendLifecycleState): void => {
     const current = session;
@@ -103,20 +116,28 @@ export function createBackendClient(options: BackendClientOptions): BackendClien
     // resurrecting a backend nobody will dispose.
     if (state !== BackendLifecycleState.Starting) {
       backend.dispose();
-      throw new BackendClientError(
-        BackendErrorKind.Launch,
-        'backend launch was aborted before it became ready'
-      );
+      throw abortedError();
     }
 
-    const connection = createMessageConnection(
-      new StreamMessageReader(backend.stdout),
-      new StreamMessageWriter(backend.stdin)
-    );
-    connection.onClose(markDead);
-    connection.onError(markDead);
-    backend.onExit(markDead);
-    connection.listen();
+    // Gate "ready" on the backend actually speaking JSON-RPC (readiness
+    // notification) rather than trusting the OS spawn event.
+    let connection: MessageConnection;
+    try {
+      connection = await openReadyConnection({ backend, startupTimeoutMs, onFatal: markDead });
+    } catch (error) {
+      if (state === BackendLifecycleState.Starting) {
+        state = BackendLifecycleState.Dead;
+      }
+      throw error;
+    }
+
+    // Disposal can land while we await readiness; reclaim the freshly launched
+    // backend instead of publishing a session over a client that is tearing down.
+    if (state !== BackendLifecycleState.Starting) {
+      connection.dispose();
+      backend.dispose();
+      throw abortedError();
+    }
 
     const opened: BackendSession = {
       backend,
@@ -129,6 +150,9 @@ export function createBackendClient(options: BackendClientOptions): BackendClien
   };
 
   const ensureSession = (): Promise<BackendSession> => {
+    if (disposed) {
+      return Promise.reject(disposedError());
+    }
     if (session !== null && state === BackendLifecycleState.Ready) {
       return Promise.resolve(session);
     }
@@ -146,6 +170,9 @@ export function createBackendClient(options: BackendClientOptions): BackendClien
       await ensureSession();
     },
     async submitMessage(params: MessageSubmitParams): Promise<MessageSubmitResult> {
+      if (disposed) {
+        throw disposedError();
+      }
       const active = await ensureSession();
       try {
         return await withRequestTimeout(active.client.submitMessage(params), requestTimeoutMs);
@@ -157,6 +184,7 @@ export function createBackendClient(options: BackendClientOptions): BackendClien
       }
     },
     dispose() {
+      disposed = true;
       if (state === BackendLifecycleState.Dead) {
         return;
       }

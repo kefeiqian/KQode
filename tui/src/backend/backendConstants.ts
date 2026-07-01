@@ -1,4 +1,8 @@
-/** Hidden argument that switches the `kqode` binary into JSON-RPC backend mode. */
+/**
+ * Hidden argument that switches the `kqode` binary into JSON-RPC backend mode.
+ *
+ * Must match the `BACKEND_MODE_ARG` constant in `src/protocol.rs`.
+ */
 export const BACKEND_MODE_ARG = '--__kqode-json-rpc-backend';
 
 /** Cargo bin target name for the Rust backend. */
@@ -10,7 +14,7 @@ export const CARGO_COMMAND = 'cargo';
 /** Default ceiling for a source-mode Cargo build before it is treated as hung. */
 export const DEFAULT_BUILD_TIMEOUT_MS = 180_000;
 
-/** Default ceiling for the spawned backend to report a successful start. */
+/** Default ceiling for the spawned backend to signal JSON-RPC readiness. */
 export const DEFAULT_STARTUP_TIMEOUT_MS = 10_000;
 
 /** Default ceiling for a single message-submit round trip. */

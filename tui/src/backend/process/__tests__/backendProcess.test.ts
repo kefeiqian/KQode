@@ -18,7 +18,9 @@ function frameRequest(payload: unknown): Buffer {
   return Buffer.concat([Buffer.from(`Content-Length: ${body.length}\r\n\r\n`, 'utf8'), body]);
 }
 
-function readFirstFrame(stream: Readable): Promise<{ result: { message: string; receivedText: string } }> {
+function readResponseFrame(
+  stream: Readable
+): Promise<{ result: { message: string; receivedText: string } }> {
   return new Promise((resolve, reject) => {
     let buffer = Buffer.alloc(0);
     const cleanup = () => {
@@ -27,24 +29,33 @@ function readFirstFrame(stream: Readable): Promise<{ result: { message: string; 
     };
     const onData = (chunk: Buffer) => {
       buffer = Buffer.concat([buffer, chunk]);
-      const headerEnd = buffer.indexOf('\r\n\r\n');
-      if (headerEnd === -1) {
-        return;
+      for (;;) {
+        const headerEnd = buffer.indexOf('\r\n\r\n');
+        if (headerEnd === -1) {
+          return;
+        }
+        const header = buffer.subarray(0, headerEnd).toString('utf8');
+        const match = /Content-Length: (\d+)/i.exec(header);
+        if (match === null) {
+          cleanup();
+          reject(new Error(`missing content length in frame header: ${header}`));
+          return;
+        }
+        const bodyStart = headerEnd + 4;
+        const bodyEnd = bodyStart + Number(match[1]);
+        if (buffer.length < bodyEnd) {
+          return;
+        }
+        const frame = JSON.parse(buffer.subarray(bodyStart, bodyEnd).toString('utf8'));
+        buffer = buffer.subarray(bodyEnd);
+        // Skip the one-shot ready notification the backend emits on startup: a
+        // JSON-RPC notification carries no id, a response does.
+        if (frame.id !== undefined) {
+          cleanup();
+          resolve(frame);
+          return;
+        }
       }
-      const header = buffer.subarray(0, headerEnd).toString('utf8');
-      const match = /Content-Length: (\d+)/i.exec(header);
-      if (match === null) {
-        cleanup();
-        reject(new Error(`missing content length in frame header: ${header}`));
-        return;
-      }
-      const bodyStart = headerEnd + 4;
-      const bodyEnd = bodyStart + Number(match[1]);
-      if (buffer.length < bodyEnd) {
-        return;
-      }
-      cleanup();
-      resolve(JSON.parse(buffer.subarray(bodyStart, bodyEnd).toString('utf8')));
     };
     stream.on('data', onData);
     stream.once('error', reject);
@@ -52,7 +63,7 @@ function readFirstFrame(stream: Readable): Promise<{ result: { message: string; 
 }
 
 async function ackThroughLauncher(backend: LaunchedBackend, text: string): Promise<string> {
-  const response = readFirstFrame(backend.stdout);
+  const response = readResponseFrame(backend.stdout);
   backend.stdin.write(frameRequest({ jsonrpc: '2.0', id: 1, method: MESSAGE_SUBMIT_METHOD, params: { text } }));
   const frame = await response;
   expect(frame.result.message).toBe(ACK_MESSAGE);

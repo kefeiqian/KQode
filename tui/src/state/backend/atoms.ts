@@ -3,7 +3,11 @@ import type { Getter, Setter } from 'jotai';
 import { sanitizeDisplayText } from '@libs/text/sanitizeDisplayText.ts';
 import { backendClientAtom } from '@state/global/index.ts';
 import { bodyScrollOffsetRowsAtom, submittedPromptEntriesAtom } from '@state/homeScreen/index.ts';
-import { backendErrorMessage, queueToBodyEntries } from '@state/backend/bodyEntries.ts';
+import {
+  BACKEND_UNAVAILABLE_MESSAGE,
+  backendErrorMessage,
+  queueToBodyEntries
+} from '@state/backend/bodyEntries.ts';
 import type { BackendResult, QueueItem } from '@state/backend/bodyEntries.ts';
 
 let nextQueueItemId = 0;
@@ -53,13 +57,10 @@ async function drainQueue(get: Getter, set: Setter): Promise<void> {
   }
 }
 
-async function runBackendRequest(
-  get: Getter,
-  text: string
-): Promise<BackendResult | undefined> {
+async function runBackendRequest(get: Getter, text: string): Promise<BackendResult> {
   const backendClient = get(backendClientAtom);
   if (backendClient === undefined) {
-    return undefined;
+    return { kind: 'error', text: sanitizeDisplayText(BACKEND_UNAVAILABLE_MESSAGE) };
   }
 
   try {
@@ -73,12 +74,7 @@ async function runBackendRequest(
   }
 }
 
-function settleActive(
-  get: Getter,
-  set: Setter,
-  id: number,
-  result: BackendResult | undefined
-): void {
+function settleActive(get: Getter, set: Setter, id: number, result: BackendResult): void {
   set(promptQueueAtom, (queue) => {
     let promoted = false;
     return queue.map((item) => {

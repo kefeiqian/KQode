@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import type { Readable, Writable } from 'node:stream';
 import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
 import { buildBackend, resolveBackendBinaryPath } from '@backend/process/backendBuild.ts';
-import { BACKEND_MODE_ARG, DEFAULT_STARTUP_TIMEOUT_MS } from '@backend/backendConstants.ts';
+import { BACKEND_MODE_ARG } from '@backend/backendConstants.ts';
 import { buildHardenedEnv } from '@backend/process/processEnv.ts';
 import { killProcessTree } from '@backend/process/processUtils.ts';
 
@@ -29,22 +29,25 @@ export type SpawnBackendOptions = {
   binaryPath: string;
   workspaceCwd: string;
   env?: NodeJS.ProcessEnv;
-  startupTimeoutMs?: number;
 };
 
 /**
  * Spawns an already-built backend binary in `workspaceCwd` over piped stdio.
  *
+ * Resolving here means the OS launched the process, not that it can serve
+ * JSON-RPC: readiness (and its startup timeout) is enforced by the backend
+ * client once the connection is live, so a process that spawns but never speaks
+ * is caught there rather than being mistaken for a healthy start.
+ *
  * # Errors
  *
- * Rejects with a `launch` error when the executable is missing or stdio pipes
- * are unavailable, and a `timeout` error when the process never reports a start.
+ * Rejects with a `launch` error when the executable cannot be spawned or its
+ * stdio pipes are unavailable.
  */
 export async function spawnBackend({
   binaryPath,
   workspaceCwd,
-  env = buildHardenedEnv(),
-  startupTimeoutMs = DEFAULT_STARTUP_TIMEOUT_MS
+  env = buildHardenedEnv()
 }: SpawnBackendOptions): Promise<LaunchedBackend> {
   const child = spawn(binaryPath, [BACKEND_MODE_ARG], {
     cwd: workspaceCwd,
@@ -54,7 +57,7 @@ export async function spawnBackend({
     windowsHide: true
   });
 
-  await waitForSpawn(child, startupTimeoutMs);
+  await waitForSpawn(child);
 
   const { stdin, stdout, stderr } = child;
   if (stdin === null || stdout === null || stderr === null) {
@@ -80,7 +83,6 @@ export type LaunchSourceBackendOptions = {
   repoRoot: string;
   workspaceCwd: string;
   buildTimeoutMs?: number;
-  startupTimeoutMs?: number;
 };
 
 /**
@@ -93,18 +95,24 @@ export type LaunchSourceBackendOptions = {
 export async function launchSourceBackend({
   repoRoot,
   workspaceCwd,
-  buildTimeoutMs,
-  startupTimeoutMs
+  buildTimeoutMs
 }: LaunchSourceBackendOptions): Promise<LaunchedBackend> {
   await buildBackend({ repoRoot, timeoutMs: buildTimeoutMs });
   return await spawnBackend({
     binaryPath: resolveBackendBinaryPath(repoRoot),
-    workspaceCwd,
-    startupTimeoutMs
+    workspaceCwd
   });
 }
 
-function waitForSpawn(child: ChildProcess, startupTimeoutMs: number): Promise<void> {
+/**
+ * Resolves once the OS reports the child has spawned, or rejects if it could
+ * not be launched.
+ *
+ * Node emits exactly one of `spawn` (launched) or `error` (could not launch)
+ * for a freshly spawned child, so no timeout guard is needed here; the backend
+ * client bounds JSON-RPC readiness separately.
+ */
+function waitForSpawn(child: ChildProcess): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     let settled = false;
     const settle = (action: () => void): void => {
@@ -112,21 +120,8 @@ function waitForSpawn(child: ChildProcess, startupTimeoutMs: number): Promise<vo
         return;
       }
       settled = true;
-      clearTimeout(timer);
       action();
     };
-
-    const timer = setTimeout(() => {
-      settle(() => {
-        killProcessTree(child.pid);
-        reject(
-          new BackendClientError(
-            BackendErrorKind.Timeout,
-            `backend did not start within ${startupTimeoutMs}ms`
-          )
-        );
-      });
-    }, startupTimeoutMs);
 
     child.once('spawn', () => settle(resolve));
     child.once('error', (error) => {

@@ -12,7 +12,6 @@ export type LaunchPackagedBackendOptions = {
   /** Workspace directory the backend process runs in. */
   workspaceCwd: string;
   cacheBaseDir?: string;
-  startupTimeoutMs?: number;
 };
 
 /** Injectable seams kept narrow for deterministic tests of the launch path. */
@@ -26,8 +25,9 @@ export type LaunchPackagedBackendDeps = {
  *
  * Unlike the source path, this never invokes Cargo: the integrity-checked
  * binary from the packaged cache is spawned directly through the shared
- * {@link spawnBackend} guards (timeout, hardened env, cleanup). Materialization
- * failures propagate as `launch`-kind errors, so the client fails closed.
+ * {@link spawnBackend} guards (hardened env, spawn-failure detection, cleanup).
+ * Materialization failures propagate as `launch`-kind errors, so the client
+ * fails closed.
  */
 export async function launchPackagedBackend(
   options: LaunchPackagedBackendOptions,
@@ -44,7 +44,6 @@ export async function launchPackagedBackend(
 
   return spawn({
     binaryPath,
-    workspaceCwd: options.workspaceCwd,
-    startupTimeoutMs: options.startupTimeoutMs
+    workspaceCwd: options.workspaceCwd
   });
 }

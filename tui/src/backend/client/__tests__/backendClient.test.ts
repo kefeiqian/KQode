@@ -11,7 +11,7 @@ import {
 import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
 import { type LaunchedBackend } from '@backend/process/backendProcess.ts';
 import { ACK_MESSAGE } from '@contracts/backend/index.ts';
-import { messageSubmitRequest } from '@backend/protocol/messageProtocol.ts';
+import { messageSubmitRequest, backendReadyNotification } from '@backend/protocol/messageProtocol.ts';
 import type { MessageSubmitResult } from '@contracts/backend/index.ts';
 import {
   BackendLifecycleState,
@@ -34,7 +34,11 @@ function ack(server: MessageConnection): void {
   server.onRequest(messageSubmitRequest, ({ text }) => ({ message: ACK_MESSAGE, receivedText: text }));
 }
 
-function makeFakeBackend(configure: (server: MessageConnection) => void): FakeBackend {
+function makeFakeBackend(
+  configure: (server: MessageConnection) => void,
+  options: { signalReady?: boolean } = {}
+): FakeBackend {
+  const { signalReady = true } = options;
   const backendStdout = new PassThrough();
   const backendStdin = new PassThrough();
   const exitListeners: Array<(exit: { code: number | null; signal: NodeJS.Signals | null }) => void> = [];
@@ -46,6 +50,9 @@ function makeFakeBackend(configure: (server: MessageConnection) => void): FakeBa
   );
   configure(server);
   server.listen();
+  if (signalReady) {
+    void server.sendNotification(backendReadyNotification);
+  }
   openServers.push(server);
 
   return {
@@ -106,6 +113,21 @@ describe('createBackendClient (fake backend)', () => {
     client.dispose();
   });
 
+  it('rejects with a timeout error when the backend never reports readiness', async () => {
+    // A backend that spawns and can answer requests but never emits the one-shot
+    // ready notification models the "spawned but silent" failure mode that
+    // startupTimeoutMs must guard.
+    const fake = makeFakeBackend(ack, { signalReady: false });
+    const client = createBackendClient({ launch: async () => fake.launched, startupTimeoutMs: 50 });
+
+    await expect(client.ensureStarted()).rejects.toMatchObject({
+      kind: BackendErrorKind.Timeout
+    });
+    expect(client.getState()).toBe(BackendLifecycleState.Dead);
+    expect(fake.disposed()).toBe(true);
+    client.dispose();
+  });
+
   it('keeps the backend alive after a recoverable JSON-RPC method error', async () => {
     const fake = makeFakeBackend((server) =>
       server.onRequest(messageSubmitRequest, () => {
@@ -160,6 +182,24 @@ describe('createBackendClient (fake backend)', () => {
     fake.emitExit();
     expect(client.getState()).toBe(BackendLifecycleState.Dead);
     client.dispose();
+  });
+
+  it('rejects submits after dispose without spawning a new backend', async () => {
+    const fake = makeFakeBackend(ack);
+    const launch = vi.fn(async () => fake.launched);
+    const client = createBackendClient({ launch });
+
+    await client.ensureStarted();
+    expect(launch).toHaveBeenCalledTimes(1);
+
+    client.dispose();
+
+    await expect(client.submitMessage({ text: 'after dispose' })).rejects.toMatchObject({
+      kind: BackendErrorKind.Launch
+    });
+    // The disposed client is terminal: no fresh backend is launched.
+    expect(launch).toHaveBeenCalledTimes(1);
+    expect(client.getState()).toBe(BackendLifecycleState.Dead);
   });
 
   it('reclaims a backend launched after disposal during startup', async () => {
