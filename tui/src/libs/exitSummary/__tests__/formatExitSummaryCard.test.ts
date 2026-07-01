@@ -9,13 +9,16 @@ function countMarker(card: string, marker: string): number {
 }
 
 describe('formatExitSummaryCard', () => {
-  it('renders the five rows in order with real Changes and Duration plus placeholders', () => {
+  it('renders a bordered banner card with the five rows in order (covers R2, R3, R10)', () => {
     const card = formatExitSummaryCard(
       { changes: { insertions: 12, deletions: 4 }, durationMs: 125_000 },
       { colorize: identity, columns: 80 }
     );
 
-    expect(card.split('\n')).toHaveLength(5);
+    // Rounded border + block banner on top of the stat rows.
+    expect(card).toContain('╭');
+    expect(card).toContain('╯');
+    expect(card).toContain('█');
     expect(card).toContain('+12 −4');
     expect(card).toContain('2m 5s');
     // Cost, Tokens, Resume are placeholders (Changes + Duration are real).
@@ -24,20 +27,8 @@ describe('formatExitSummaryCard', () => {
     const order = ['Changes', 'Duration', 'Cost', 'Tokens', 'Resume'].map((label) =>
       card.indexOf(label)
     );
-    expect(order).toEqual([...order].sort((a, b) => a - b));
     expect(order.every((index) => index >= 0)).toBe(true);
-  });
-
-  it('positions the emblem to the left of the stat rows (covers R2, R10)', () => {
-    const card = formatExitSummaryCard(
-      { changes: { insertions: 0, deletions: 0 }, durationMs: 1_000 },
-      { colorize: identity, columns: 80 }
-    );
-    const lines = card.split('\n');
-
-    expect(card).toContain('KQode');
-    expect(lines[0].startsWith('Changes')).toBe(false);
-    expect(lines[0]).toContain('Changes');
+    expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
   it('renders Changes as a placeholder when unavailable, e.g. non-repo (covers AE3)', () => {
@@ -50,13 +41,25 @@ describe('formatExitSummaryCard', () => {
     expect(countMarker(card, '—')).toBe(4);
   });
 
-  it('omits the emblem and reflows rows to the left column below the hide threshold', () => {
+  it('degrades to a single-line wordmark box when the banner will not fit (covers R11)', () => {
+    const card = formatExitSummaryCard(
+      { changes: { insertions: 0, deletions: 0 }, durationMs: 1_000 },
+      { colorize: identity, columns: 30 }
+    );
+
+    expect(card).toContain('╭');
+    expect(card).toContain('KQode');
+    expect(card).not.toContain('█');
+  });
+
+  it('drops the border and stacks rows plainly on a very narrow terminal (covers R11)', () => {
     const card = formatExitSummaryCard(
       { changes: { insertions: 0, deletions: 0 }, durationMs: 0 },
-      { colorize: identity, columns: 30 }
+      { colorize: identity, columns: 15 }
     );
     const lines = card.split('\n');
 
+    expect(card).not.toContain('╭');
     expect(lines).toHaveLength(5);
     expect(lines[0].startsWith('Changes')).toBe(true);
     expect(card).toContain('+0 −0');

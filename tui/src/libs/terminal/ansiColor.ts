@@ -1,6 +1,19 @@
 /** SGR reset — clears any foreground color set by {@link colorize}. */
 export const RESET_SEQUENCE = '\u001B[0m';
 
+const SGR_PATTERN = /\u001B\[[0-9;]*m/g;
+
+/**
+ * Visible (printed) length of `text`, ignoring SGR color escapes.
+ *
+ * Layout math (column padding, box borders) must count printed columns, not the
+ * invisible escape bytes {@link colorize} injects, or colored cells push borders
+ * out of alignment.
+ */
+export function visibleLength(text: string): number {
+  return text.replace(SGR_PATTERN, '').length;
+}
+
 /** Builds the truecolor SGR foreground sequence for a `#rrggbb` (or `#rgb`) hex color. */
 export function foregroundSequence(hex: string): string {
   const { red, green, blue } = hexToRgb(hex);

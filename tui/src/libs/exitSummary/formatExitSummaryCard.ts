@@ -1,6 +1,9 @@
-import { emblemLines } from '@libs/exitSummary/emblem.ts';
+import { bannerLines } from '@libs/exitSummary/banner.ts';
+import { boxed } from '@libs/exitSummary/border.ts';
 import { formatDuration } from '@libs/exitSummary/formatDuration.ts';
 import type { Colorize, ExitSummaryData } from '@libs/exitSummary/types.ts';
+import { PRODUCT_NAME } from '@libs/product/productMetadata.ts';
+import { visibleLength } from '@libs/terminal/ansiColor.ts';
 import { theme } from '@theme/themeConfig.ts';
 
 const PLACEHOLDER_MARKER = '—';
@@ -18,20 +21,37 @@ export type FormatExitSummaryCardOptions = {
 };
 
 /**
- * Renders the exit summary card as a plain multi-line string: the KQode emblem
- * on the left and the labeled stat rows on the right.
+ * Renders the exit summary card as a plain multi-line string: the KQode wordmark
+ * banner on top and the labeled stat rows below, wrapped in a rounded border.
  *
- * Only the `+`/`−` Changes counts and the placeholder marker are colorized so
- * the card stays legible on the user's restored (possibly light) terminal
- * background. `colorize` is injected — pass an identity function to assert plain
- * structure in tests.
+ * The card degrades to fit `columns`: the full block banner, then a single-line
+ * wordmark, then borderless stacked rows on very narrow terminals. Only the
+ * `+`/`−` Changes counts and the placeholder marker are colorized so the card
+ * stays legible on the user's restored (possibly light) terminal background.
+ * `colorize` is injected — pass an identity function to assert plain structure.
  */
 export function formatExitSummaryCard(
   data: ExitSummaryData,
   { colorize, columns }: FormatExitSummaryCardOptions
 ): string {
   const rows = ROW_LABELS.map((label) => renderRow(label, data, colorize));
-  return composeColumns(emblemLines(columns), rows).join('\n');
+  return renderCard(rows, columns).join('\n');
+}
+
+function renderCard(rows: readonly string[], columns: number): string[] {
+  for (const header of [bannerLines(), [PRODUCT_NAME]]) {
+    const card = boxed([...header, '', ...rows], { width: visibleLength });
+    if (cardWidth(card) <= columns) {
+      return card;
+    }
+  }
+
+  // Too narrow for a bordered card — stack the rows plainly.
+  return [...rows];
+}
+
+function cardWidth(lines: readonly string[]): number {
+  return lines.reduce((max, line) => Math.max(max, visibleLength(line)), 0);
 }
 
 function renderRow(label: RowLabel, data: ExitSummaryData, colorize: Colorize): string {
@@ -57,21 +77,4 @@ function renderValue(label: RowLabel, data: ExitSummaryData, colorize: Colorize)
 
 function placeholder(colorize: Colorize): string {
   return colorize(PLACEHOLDER_MARKER, theme.colors.muted);
-}
-
-function composeColumns(emblem: readonly string[], rows: readonly string[]): string[] {
-  if (emblem.length === 0) {
-    return [...rows];
-  }
-
-  const emblemWidth = Math.max(...emblem.map((line) => line.length));
-  const height = Math.max(emblem.length, rows.length);
-  const lines: string[] = [];
-  for (let index = 0; index < height; index += 1) {
-    const left = (emblem[index] ?? '').padEnd(emblemWidth);
-    const right = rows[index] ?? '';
-    lines.push(`${left}${COLUMN_GAP}${right}`.replace(/\s+$/, ''));
-  }
-
-  return lines;
 }
