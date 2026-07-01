@@ -2,6 +2,7 @@ import { render } from 'ink';
 import { Provider } from 'jotai';
 import { App } from '@/App.tsx';
 import { createAppRuntime } from '@/bootstrap.ts';
+import { finishSession } from '@libs/exitSummary/finishSession.ts';
 
 const { store, dispose } = await createAppRuntime({ entryUrl: import.meta.url });
 
@@ -15,4 +16,6 @@ const { waitUntilExit } = render(
   { incrementalRendering: true }
 );
 
-void waitUntilExit().finally(dispose);
+// Restore the terminal, then print the exit summary card into the recovered
+// scrollback. Shared with the packaged entry so exit behavior can't drift.
+void waitUntilExit().finally(() => finishSession({ store, dispose }));

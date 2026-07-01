@@ -14,7 +14,14 @@ import {
   enterAlternateScreen,
   leaveAlternateScreen
 } from '@libs/terminal/alternateScreen.ts';
-import { productVersionAtom, repoRootAtom, workspaceCwdAtom } from '@state/global/index.ts';
+import { resolveSessionSeed } from '@libs/exitSummary/resolveSessionSeed.ts';
+import {
+  productVersionAtom,
+  repoRootAtom,
+  sessionGitBaselineAtom,
+  sessionStartedAtAtom,
+  workspaceCwdAtom
+} from '@state/global/index.ts';
 import { theme } from '@theme/themeConfig.ts';
 import type { EmbeddedBackendAsset } from '@backend/packaged/materializeBackend.ts';
 
@@ -59,6 +66,13 @@ export async function createAppRuntime({
   const store = createStore();
   const workspaceCwd = resolveWorkspaceCwd();
   store.set(workspaceCwdAtom, workspaceCwd);
+
+  // Snapshot the session start time and git baseline at boot so the exit summary
+  // can report real Duration and a working-tree Changes delta. Seeding here (not
+  // in a state atom) keeps git shell-out out of the state layer.
+  const seed = resolveSessionSeed({ cwd: workspaceCwd });
+  store.set(sessionStartedAtAtom, seed.startedAt);
+  store.set(sessionGitBaselineAtom, seed.baseline);
 
   let client: BackendClientHandle;
   let productVersion: string;
