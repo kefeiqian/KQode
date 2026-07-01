@@ -22,6 +22,11 @@ test('releaseTargetName maps win32 to the windows asset name', () => {
   assert.equal(releaseTargetName('linux', 'x64'), 'kqode-linux-x64');
 });
 
+test('win32-arm64 falls back to the windows-x64 asset (x64 emulation)', () => {
+  assert.equal(releaseTargetName('win32', 'arm64'), 'kqode-windows-x64');
+  assert.ok(isSupported('win32', 'arm64'));
+});
+
 test('archiveExt is zip on Windows and tar.gz elsewhere', () => {
   assert.equal(archiveExt('win32'), 'zip');
   assert.equal(archiveExt('linux'), 'tar.gz');

@@ -10,8 +10,10 @@ const REPO = 'kefeiqian/kqode-cli';
 /**
  * Supported `${process.platform}-${process.arch}` targets.
  *
- * Each entry has a matching `kqode-<os>-<arch>` release archive published by the
- * GitHub Release pipeline (`.github/workflows/release.yml`).
+ * Each entry resolves to a `kqode-<os>-<arch>` release archive. Most map
+ * directly; `win32-arm64` has no native build yet and resolves to the
+ * `windows-x64` asset, which Windows 11 on ARM runs via x64 emulation (see
+ * `releaseTargetName`).
  */
 const SUPPORTED_TARGETS = [
   'darwin-arm64',
@@ -24,6 +26,13 @@ const SUPPORTED_TARGETS = [
 
 /** Maps Node's `process.platform` to the release-archive OS segment. */
 const RELEASE_OS = { darwin: 'darwin', linux: 'linux', win32: 'windows' };
+
+/**
+ * Targets with no native release archive that reuse another target's asset.
+ * Windows on ARM has no native build yet; Windows 11 on ARM runs the x64
+ * executable via built-in emulation.
+ */
+const ASSET_OVERRIDES = { 'win32-arm64': { os: 'windows', arch: 'x64' } };
 
 /** Target key for a platform/arch pair, e.g. `win32-x64`. */
 function platformKey(platform, arch) {
@@ -42,7 +51,10 @@ function binaryName(platform) {
 
 /** Release asset base name (no extension), e.g. `kqode-windows-x64`. */
 function releaseTargetName(platform, arch) {
-  return `kqode-${RELEASE_OS[platform]}-${arch}`;
+  const override = ASSET_OVERRIDES[platformKey(platform, arch)];
+  const assetOs = override ? override.os : RELEASE_OS[platform];
+  const assetArch = override ? override.arch : arch;
+  return `kqode-${assetOs}-${assetArch}`;
 }
 
 /** Release archive extension for a platform: `zip` on Windows, else `tar.gz`. */

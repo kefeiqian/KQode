@@ -32,8 +32,11 @@ function vendorBinaryPath() {
   return path.join(vendorDir, binaryName(process.platform));
 }
 
+/** Hard deadline for each release download; bounds hangs without killing slow links. */
+const REQUEST_TIMEOUT_MS = 300_000;
+
 async function fetchBuffer(url) {
-  const res = await fetch(url, { redirect: 'follow' });
+  const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
   if (!res.ok) {
     throw new Error(`download failed (${res.status} ${res.statusText}): ${url}`);
   }

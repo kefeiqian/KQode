@@ -23,8 +23,9 @@ runtime nor a Rust toolchain at execution time.
 ## Supported platforms
 
 `darwin-arm64`, `darwin-x64`, `linux-arm64`, `linux-x64`, `win32-arm64`,
-`win32-x64`. On an unsupported host, `kqode` prints an actionable error instead
-of failing silently.
+`win32-x64`. On Windows arm64 the x64 build runs via emulation (Windows 11). On
+an unsupported host, `kqode` prints an actionable error instead of failing
+silently.
 
 ## Notes
 
