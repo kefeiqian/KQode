@@ -71,6 +71,12 @@ This builds the release backend, Bun-compiles the standalone executable, then
 archives it with a checksum. Cross-platform artifacts are produced by CI on
 native runners; a single machine only builds its own target.
 
+The `ubuntu-22.04-arm` and `windows-11-arm` jobs use GitHub-hosted arm64 runners
+that are free but available **only in public repositories** — nothing to enable,
+just keep the repo public. In a private repo those labels fail (the required
+`kqode-linux-arm64` job would break the release), so you would need paid larger
+arm64 runners or would have to drop the arm64 targets.
+
 ## 1. GitHub Release direct download
 
 1. Push a version tag to trigger `.github/workflows/release.yml`:

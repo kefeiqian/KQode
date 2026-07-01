@@ -10,6 +10,12 @@
 #
 # Triggers: pushing a `v*` tag publishes a release; `workflow_dispatch` is a
 # dry run that builds and uploads workflow artifacts without touching a release.
+#
+# ARM64 runners: `ubuntu-22.04-arm` and `windows-11-arm` are free GitHub-hosted
+# runners, but ONLY in PUBLIC repositories — the labels fail in a private repo.
+# Nothing needs enabling for a public repo (just the labels below). If this repo
+# is ever made private, swap those labels for paid larger arm64 runners or drop
+# the arm64 targets, or the required linux-arm64 job will break the release.
 name: Release
 
 on:
