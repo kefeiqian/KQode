@@ -10,6 +10,10 @@ import {
   resetTerminalBackground,
   setTerminalBackground
 } from '@libs/terminal/terminalBackground.ts';
+import {
+  enterAlternateScreen,
+  leaveAlternateScreen
+} from '@libs/terminal/alternateScreen.ts';
 import { productVersionAtom, repoRootAtom, workspaceCwdAtom } from '@state/global/index.ts';
 import { theme } from '@theme/themeConfig.ts';
 import type { EmbeddedBackendAsset } from '@backend/packaged/materializeBackend.ts';
@@ -78,22 +82,31 @@ export async function createAppRuntime({
   }
 
   store.set(productVersionAtom, productVersion);
+  // Enter the alternate screen buffer before any visual setup so the session
+  // renders in a scrollback-less buffer: while the TUI owns the screen the
+  // terminal's native scrollbar has no pre-launch history to scroll into, and
+  // the original buffer (with its scrollback) is restored on exit.
+  enterAlternateScreen();
   setTerminalWindowTitle(PRODUCT_NAME, productVersion);
   setTerminalBackground(theme.colors.bodyBackground);
 
   const disposeBackend = startBackendRuntime(store, client);
 
-  // Restore the user's terminal background on clean shutdown and on hard exit
-  // (Ctrl+C / crash) so the OSC 11 override never outlives the session. The
-  // `exit` listener is the safety net; `dispose` removes it on the clean path
-  // to avoid a redundant reset.
-  const restoreBackground = () => resetTerminalBackground();
-  process.once('exit', restoreBackground);
+  // Restore the user's terminal on clean shutdown and on hard exit (Ctrl+C /
+  // crash) so neither the OSC 11 background override nor the alternate screen
+  // buffer outlives the session. The `exit` listener is the safety net;
+  // `dispose` removes it on the clean path to avoid a redundant restore. Mirror
+  // the enter order on teardown: reset the background, then leave the alt buffer.
+  const restoreTerminal = () => {
+    resetTerminalBackground();
+    leaveAlternateScreen();
+  };
+  process.once('exit', restoreTerminal);
 
   const dispose = () => {
-    process.removeListener('exit', restoreBackground);
+    process.removeListener('exit', restoreTerminal);
     disposeBackend();
-    restoreBackground();
+    restoreTerminal();
   };
 
   return { store, dispose };
