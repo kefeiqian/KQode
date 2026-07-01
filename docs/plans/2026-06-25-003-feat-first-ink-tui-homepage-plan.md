@@ -943,7 +943,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Progress note:** An initial npm distribution scaffold exists (`d43ec6b84f5e71241cb7c941056c08515da5fafb`, `tui/scripts/stageNpm.ts`): a thin root package plus platform-specific optional-dependency packages that select the prebuilt `kqode` executable. Release archives, checksums, the `cargo xtask package-release` command, the CI matrix, and the registration guide remain outstanding.
 
 **Approach:**
-- [ ] Define the first supported target matrix for the standalone executable: macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64. Linux libc split can be refined during implementation if Node SEA or Rust backend constraints require separate GNU/musl artifacts.
+- [x] Define the first supported target matrix for the standalone executable: macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64. Linux libc split can be refined during implementation if Node SEA or Rust backend constraints require separate GNU/musl artifacts.
 
 | Target artifact | CI runner | Rust backend target | Node/SEA executable source | Archive | Smoke test expectation |
 |-----------------|-----------|---------------------|----------------------------|---------|------------------------|
@@ -954,32 +954,32 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 | `kqode-windows-x64` | `windows-latest` | `x86_64-pc-windows-msvc` | Windows x64 Node executable copied before SEA injection | `.zip` | Run the executable smoke test on CI. |
 | `kqode-windows-arm64` | Windows arm64 runner when available, otherwise documented cross-build fallback | `aarch64-pc-windows-msvc` | Windows arm64 Node executable copied before SEA injection | `.zip` | Run on matching Windows arm64 runner when available; otherwise mark as built-only with explicit release note. |
 
-- [ ] Package direct-download artifacts as `kqode-<target>.tar.gz` for Unix-like targets and `kqode-<target>.zip` for Windows, each containing the standalone executable.
-- [ ] Generate per-archive `.sha256` files and an aggregate `checksums.txt` for GitHub Release upload.
-- [ ] Expose release packaging through an xtask command such as `cargo xtask package-release`, even if the xtask delegates to Bun/package-local Rollup/Node scripts internally.
-- [ ] Do not generate npm/Homebrew/winget directories under `tui/dist/release/`. Those ecosystems consume published artifact URLs, not local staging folders.
-- [ ] Write `docs/release/kqode_distribution_registration.md` after the echo/ACK executable works and release archives exist. The guide should walk a maintainer through GitHub Release asset upload/direct download, npm package registration/publish flow, Homebrew formula/tap registration, and winget manifest submission, each pointing at the GitHub Release asset URLs and checksums.
-- [ ] Define npm distribution as a thin root package with platform-specific optional dependency packages. The root npm `bin` should run a small selector that locates the installed platform package executable; each platform package contains the corresponding prebuilt `kqode` executable and declares `os`/`cpu` metadata. Do not point npm `bin` at the TypeScript/Rollup JS runtime.
-- [ ] Keep publishing credentials, registry upload, tap submission, winget submission, signing, notarization, and auto-update out of this implementation unit.
+- [x] Package direct-download artifacts as `kqode-<target>.tar.gz` for Unix-like targets and `kqode-<target>.zip` for Windows, each containing the standalone executable.
+- [x] Generate per-archive `.sha256` files and an aggregate `checksums.txt` for GitHub Release upload.
+- [x] Expose release packaging through an xtask command such as `cargo xtask package-release`, even if the xtask delegates to Bun/package-local Rollup/Node scripts internally.
+- [x] Do not generate npm/Homebrew/winget directories under `tui/dist/release/`. Those ecosystems consume published artifact URLs, not local staging folders.
+- [x] Write `docs/release/kqode_distribution_registration.md` after the echo/ACK executable works and release archives exist. The guide should walk a maintainer through GitHub Release asset upload/direct download, npm package registration/publish flow, Homebrew formula/tap registration, and winget manifest submission, each pointing at the GitHub Release asset URLs and checksums.
+- [x] Define npm distribution as a thin root package with platform-specific optional dependency packages. The root npm `bin` should run a small selector that locates the installed platform package executable; each platform package contains the corresponding prebuilt `kqode` executable and declares `os`/`cpu` metadata. Do not point npm `bin` at the TypeScript/Rollup JS runtime.
+- [x] Keep publishing credentials, registry upload, tap submission, winget submission, signing, notarization, and auto-update out of this implementation unit.
 
 **Patterns to follow:**
-- [ ] Treat package managers as distribution channels around `kqode`, not as separate application runtimes.
-- [ ] Keep release archive/checksum staging deterministic and generated under `tui/dist/release/`.
-- [ ] Prefer Cargo-facing release commands in docs and CI; Bun/package-local scripts remain implementation details inside the nested TUI package, while npm remains only a distribution channel.
-- [ ] Keep the source-mode developer path separate from packaged-user install paths.
+- [x] Treat package managers as distribution channels around `kqode`, not as separate application runtimes.
+- [x] Keep release archive/checksum staging deterministic and generated under `tui/dist/release/`.
+- [x] Prefer Cargo-facing release commands in docs and CI; Bun/package-local scripts remain implementation details inside the nested TUI package, while npm remains only a distribution channel.
+- [x] Keep the source-mode developer path separate from packaged-user install paths.
 
 **Test scenarios:**
-- [ ] Happy path: release packaging creates a direct-download archive and checksum for the current host target.
-- [ ] Happy path: every supported target has a declared runner, Rust target, Node/SEA source, archive format, and smoke-test status.
-- [ ] Happy path: `cargo xtask package-release` produces the same archive/checksum layout as the lower-level package script.
-- [ ] Happy path: release packaging creates an aggregate `checksums.txt` covering all generated archives.
-- [ ] Happy path: the registration guide names the generated artifact paths, the expected GitHub Release asset URL shape, and the manual publish/registration steps for GitHub direct download, npm, Homebrew, and winget.
-- [ ] Happy path: the registration guide explains the npm root-selector package and platform optional package layout, including how the root `bin` locates the native executable.
-- [ ] Edge case: missing standalone executable fails packaging with an explicit error instead of falling back to source-mode or package-manager runtime execution.
-- [ ] Edge case: unsupported platform/arch reports a clear unsupported-target error.
+- [x] Happy path: release packaging creates a direct-download archive and checksum for the current host target.
+- [x] Happy path: every supported target has a declared runner, Rust target, Node/SEA source, archive format, and smoke-test status.
+- [x] Happy path: `cargo xtask package-release` produces the same archive/checksum layout as the lower-level package script.
+- [x] Happy path: release packaging creates an aggregate `checksums.txt` covering all generated archives.
+- [x] Happy path: the registration guide names the generated artifact paths, the expected GitHub Release asset URL shape, and the manual publish/registration steps for GitHub direct download, npm, Homebrew, and winget.
+- [x] Happy path: the registration guide explains the npm root-selector package and platform optional package layout, including how the root `bin` locates the native executable.
+- [x] Edge case: missing standalone executable fails packaging with an explicit error instead of falling back to source-mode or package-manager runtime execution.
+- [x] Edge case: unsupported platform/arch reports a clear unsupported-target error.
 
 **Verification:**
-- [ ] The generated release archives/checksums and registration guide show how each install channel would deliver the same standalone executable from GitHub Release assets without requiring packaged users to install Cargo or run a backend separately.
+- [x] The generated release archives/checksums and registration guide show how each install channel would deliver the same standalone executable from GitHub Release assets without requiring packaged users to install Cargo or run a backend separately.
 
 ---
 
@@ -994,31 +994,31 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Dependencies:** U9, U12.
 
 **Approach:**
-- [ ] Trigger on version tags such as `v*` and allow manual `workflow_dispatch` for release candidates.
-- [ ] Build the standalone executable matrix for macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64 using the same `cargo xtask package-release` path as local U12.
-- [ ] Use a two-stage workflow: matrix jobs build and upload workflow artifacts only; one final release job downloads all matrix artifacts, verifies the complete manifest/checksums, creates or updates the GitHub Release idempotently, and uploads per-target archives, per-target `.sha256` files, and aggregate `checksums.txt`.
-- [ ] Keep this unsigned/not-notarized for the first slice unless implementation discovers platform requirements that block execution entirely.
-- [ ] Add minimum release authenticity controls: protected release tags/environments where available, explicit least-privilege workflow permissions, pinned third-party actions by version or SHA, GitHub artifact attestations or signed checksums when available, and verification instructions in the registration guide.
-- [ ] Do not publish npm packages, Homebrew taps, winget submissions, or auto-update metadata from this workflow. Those remain manual steps documented in the registration guide.
-- [ ] Fail closed if any target archive or checksum is missing.
+- [x] Trigger on version tags such as `v*` and allow manual `workflow_dispatch` for release candidates.
+- [x] Build the standalone executable matrix for macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64 using the same `cargo xtask package-release` path as local U12.
+- [x] Use a two-stage workflow: matrix jobs build and upload workflow artifacts only; one final release job downloads all matrix artifacts, verifies the complete manifest/checksums, creates or updates the GitHub Release idempotently, and uploads per-target archives, per-target `.sha256` files, and aggregate `checksums.txt`.
+- [x] Keep this unsigned/not-notarized for the first slice unless implementation discovers platform requirements that block execution entirely.
+- [x] Add minimum release authenticity controls: protected release tags/environments where available, explicit least-privilege workflow permissions, pinned third-party actions by version or SHA, GitHub artifact attestations or signed checksums when available, and verification instructions in the registration guide.
+- [x] Do not publish npm packages, Homebrew taps, winget submissions, or auto-update metadata from this workflow. Those remain manual steps documented in the registration guide.
+- [x] Fail closed if any target archive or checksum is missing.
 
 **Patterns to follow:**
-- [ ] The workflow should use the same deterministic xtask command used locally so CI and local artifact shapes match.
-- [ ] The final release job should be the only job with release-write permission; matrix build jobs should not have `contents: write`.
-- [ ] Package managers consume the uploaded GitHub Release URLs; the workflow should not create package-manager-specific staging directories under `tui/dist/release/`.
-- [ ] The workflow should make provenance/auditability visible in the release notes or registration guide so downstream package-manager registrations know which checksum/signature/attestation to verify.
+- [x] The workflow should use the same deterministic xtask command used locally so CI and local artifact shapes match.
+- [x] The final release job should be the only job with release-write permission; matrix build jobs should not have `contents: write`.
+- [x] Package managers consume the uploaded GitHub Release URLs; the workflow should not create package-manager-specific staging directories under `tui/dist/release/`.
+- [x] The workflow should make provenance/auditability visible in the release notes or registration guide so downstream package-manager registrations know which checksum/signature/attestation to verify.
 
 **Test scenarios:**
-- [ ] Happy path: a manual dry-run/release-candidate workflow produces all matrix artifacts as workflow artifacts without publishing package registries.
-- [ ] Happy path: a tag-triggered run uploads the expected archive/checksum assets to the GitHub Release.
-- [ ] Happy path: rerunning the workflow for the same tag is idempotent: it replaces or skips identical release assets deliberately instead of producing duplicates or partial releases.
-- [ ] Happy path: release assets include checksums plus an attestation/signature path, or the workflow fails with a documented reason if the platform feature is unavailable.
-- [ ] Edge case: missing archive/checksum fails the workflow before release upload completes.
-- [ ] Edge case: final release job refuses to publish when any matrix artifact is missing, has a checksum mismatch, or has an unexpected target name.
-- [ ] Edge case: unsupported platform/arch is reported as a matrix/configuration error, not silently skipped.
+- [x] Happy path: a manual dry-run/release-candidate workflow produces all matrix artifacts as workflow artifacts without publishing package registries.
+- [x] Happy path: a tag-triggered run uploads the expected archive/checksum assets to the GitHub Release.
+- [x] Happy path: rerunning the workflow for the same tag is idempotent: it replaces or skips identical release assets deliberately instead of producing duplicates or partial releases.
+- [x] Happy path: release assets include checksums plus an attestation/signature path, or the workflow fails with a documented reason if the platform feature is unavailable.
+- [x] Edge case: missing archive/checksum fails the workflow before release upload completes.
+- [x] Edge case: final release job refuses to publish when any matrix artifact is missing, has a checksum mismatch, or has an unexpected target name.
+- [x] Edge case: unsupported platform/arch is reported as a matrix/configuration error, not silently skipped.
 
 **Verification:**
-- [ ] A maintainer can create a tag, run the workflow, and see GitHub Release assets whose URLs match the registration guide's npm/Homebrew/winget examples.
+- [x] A maintainer can create a tag, run the workflow, and see GitHub Release assets whose URLs match the registration guide's npm/Homebrew/winget examples.
 
 ---
 
