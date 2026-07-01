@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import resolve from '../../packaging/npm/kqode/lib/resolve.cjs';
+import { exeSuffix, parseArgs, resolveProductVersion } from './scriptUtils.ts';
 
 /**
  * Stages the publish-ready npm layout for the current host into
@@ -17,28 +18,6 @@ import resolve from '../../packaging/npm/kqode/lib/resolve.cjs';
 const tuiRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = path.resolve(tuiRoot, '..');
 const npmRoot = path.join(repoRoot, 'packaging', 'npm');
-const exeSuffix = process.platform === 'win32' ? '.exe' : '';
-
-function parseArgs(argv: string[]): Map<string, string> {
-  const args = new Map<string, string>();
-  for (const arg of argv) {
-    const match = /^--([^=]+)=(.*)$/.exec(arg);
-    if (match === null) {
-      throw new Error(`unrecognized argument: ${arg} (use --key=value)`);
-    }
-    args.set(match[1], match[2]);
-  }
-  return args;
-}
-
-function readCargoVersion(): string {
-  const manifest = fs.readFileSync(path.join(repoRoot, 'Cargo.toml'), 'utf8');
-  const match = /^\s*version\s*=\s*"([^"]+)"/m.exec(manifest);
-  if (match === null) {
-    throw new Error('could not read version from Cargo.toml');
-  }
-  return match[1];
-}
 
 function writeJson(filePath: string, value: unknown): void {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
@@ -92,7 +71,7 @@ function stagePlatform(version: string, exePath: string, distRoot: string): stri
 
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
-  const version = args.get('version') ?? readCargoVersion();
+  const version = args.get('version') ?? resolveProductVersion({ repoRoot });
   const exePath = args.get('exe') ?? path.join(tuiRoot, 'dist', `kqode${exeSuffix}`);
   const distRoot = args.get('out') ?? path.join(npmRoot, 'dist');
 

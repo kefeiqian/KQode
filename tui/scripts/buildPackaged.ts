@@ -2,6 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import type { BunPlugin } from 'bun';
+import { exeSuffix, parseArgs, resolveProductVersion } from './scriptUtils.ts';
+import {
+  BACKEND_SHA256_ENV_VAR,
+  DISTRIBUTION_ENV_VAR,
+  PACKAGED_DISTRIBUTION,
+  VERSION_ENV_VAR
+} from '../src/libs/runtime/distributionMode.ts';
 
 /**
  * Builds the self-contained packaged `kqode` executable with Bun.
@@ -16,16 +24,15 @@ import { fileURLToPath } from 'node:url';
 
 const tuiRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = path.resolve(tuiRoot, '..');
-const exeSuffix = process.platform === 'win32' ? '.exe' : '';
 
 // Ink imports the optional `react-devtools-core` inside a `process.env.DEV ===
 // 'true'` branch that never runs in the packaged binary, and the package is not
 // installed. Bun matches `--define` only on dot access, not Ink's bracket
 // access, so the branch cannot be DCE'd; instead resolve the dependency to an
 // empty stub. The runtime DEV guard ensures the stub is never evaluated.
-const stubReactDevtools = {
+const stubReactDevtools: BunPlugin = {
   name: 'stub-react-devtools-core',
-  setup(build: { onResolve: Function; onLoad: Function }): void {
+  setup(build): void {
     build.onResolve({ filter: /^react-devtools-core$/ }, () => ({
       path: 'react-devtools-core',
       namespace: 'kqode-stub'
@@ -36,27 +43,6 @@ const stubReactDevtools = {
     }));
   }
 };
-
-function parseArgs(argv: string[]): Map<string, string> {
-  const args = new Map<string, string>();
-  for (const arg of argv) {
-    const match = /^--([^=]+)=(.*)$/.exec(arg);
-    if (match === null) {
-      throw new Error(`unrecognized argument: ${arg} (use --key=value)`);
-    }
-    args.set(match[1], match[2]);
-  }
-  return args;
-}
-
-function readCargoVersion(): string {
-  const manifest = fs.readFileSync(path.join(repoRoot, 'Cargo.toml'), 'utf8');
-  const match = /^\s*version\s*=\s*"([^"]+)"/m.exec(manifest);
-  if (match === null) {
-    throw new Error('could not read version from Cargo.toml');
-  }
-  return match[1];
-}
 
 function stageBackend(backendSource: string): { stagedPath: string; sha256: string } {
   if (!fs.existsSync(backendSource)) {
@@ -82,9 +68,9 @@ async function compile(version: string, sha256: string, outBase: string): Promis
     entrypoints: [entry],
     minify: true,
     define: {
-      'process.env.KQODE_DISTRIBUTION': '"packaged"',
-      'process.env.KQODE_VERSION': JSON.stringify(version),
-      'process.env.KQODE_BACKEND_SHA256': JSON.stringify(sha256)
+      ['process.env.' + DISTRIBUTION_ENV_VAR]: JSON.stringify(PACKAGED_DISTRIBUTION),
+      ['process.env.' + VERSION_ENV_VAR]: JSON.stringify(version),
+      ['process.env.' + BACKEND_SHA256_ENV_VAR]: JSON.stringify(sha256)
     },
     plugins: [stubReactDevtools],
     compile: { outfile: outBase }
@@ -101,7 +87,7 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const backendSource =
     args.get('backend') ?? path.join(repoRoot, 'target', 'release', `kqode${exeSuffix}`);
-  const version = args.get('version') ?? readCargoVersion();
+  const version = args.get('version') ?? resolveProductVersion({ repoRoot });
   const outBase = args.get('out') ?? path.join(tuiRoot, 'dist', 'kqode');
 
   const { sha256 } = stageBackend(backendSource);
