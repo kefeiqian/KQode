@@ -156,6 +156,48 @@ describe('materializePackagedBackend', () => {
     expect(fs.readFileSync(decoy)).toEqual(Buffer.from('attacker controlled'));
   });
 
+  it.skipIf(isWindows)('re-materializes a cached binary that has loose (group/other) permissions', async () => {
+    const cacheBaseDir = tempBase();
+    const embedded = asset(Buffer.from('perm-fix backend'));
+    const binaryPath = await materializePackagedBackend({
+      asset: embedded,
+      version: '0.1.0',
+      cacheBaseDir
+    });
+    expect(embedded.calls()).toBe(1);
+
+    // Loosen the cached binary to group/other read+execute: a permissive mode is
+    // treated as stale, so the embedded bytes are re-read and rewritten tight.
+    fs.chmodSync(binaryPath, 0o755);
+
+    const rewritten = await materializePackagedBackend({
+      asset: embedded,
+      version: '0.1.0',
+      cacheBaseDir
+    });
+
+    expect(rewritten).toBe(binaryPath);
+    expect(embedded.calls()).toBe(2);
+    expect(fs.statSync(binaryPath).mode & 0o777).toBe(0o700);
+  });
+
+  it('rejects when a non-regular file (directory) occupies the cache path', async () => {
+    const cacheBaseDir = tempBase();
+    const { runtimeDir, binaryPath } = resolvePackagedBackendPaths({
+      version: '0.1.0',
+      sha256: sha256(Buffer.from('real')),
+      cacheBaseDir
+    });
+    fs.mkdirSync(runtimeDir, { recursive: true });
+    // Plant a directory where the binary is expected: inspectExisting must refuse
+    // it as a non-regular file rather than trust, follow, or overwrite it.
+    fs.mkdirSync(binaryPath);
+
+    await expect(
+      materializePackagedBackend({ asset: asset(Buffer.from('real')), version: '0.1.0', cacheBaseDir })
+    ).rejects.toMatchObject({ kind: BackendErrorKind.Launch });
+  });
+
   it('leaves no temp staging files behind after a successful materialization', async () => {
     const cacheBaseDir = tempBase();
     const { runtimeDir } = resolvePackagedBackendPaths({
