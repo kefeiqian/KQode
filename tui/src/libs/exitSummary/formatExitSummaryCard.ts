@@ -6,7 +6,6 @@ import { PRODUCT_NAME } from '@libs/product/productMetadata.ts';
 import { visibleLength } from '@libs/terminal/ansiColor.ts';
 import { theme } from '@theme/themeConfig.ts';
 
-const PLACEHOLDER_MARKER = '—';
 const INSERTIONS_SIGN = '+';
 const DELETIONS_SIGN = '−';
 const COLUMN_GAP = '  ';
@@ -24,23 +23,29 @@ export type FormatExitSummaryCardOptions = {
  * Renders the exit summary card as a plain multi-line string: the KQode wordmark
  * banner on top and the labeled stat rows below, wrapped in a rounded border.
  *
- * The card degrades to fit `columns`: the full block banner, then a single-line
- * wordmark, then borderless stacked rows on very narrow terminals. Only the
- * `+`/`−` Changes counts and the placeholder marker are colorized so the card
- * stays legible on the user's restored (possibly light) terminal background.
- * `colorize` is injected — pass an identity function to assert plain structure.
+ * Rows whose data is empty are omitted entirely rather than shown as a
+ * placeholder, so the card only lists stats that carry a real value. The card
+ * degrades to fit `columns`: the full block banner, then a single-line wordmark,
+ * then borderless stacked rows on very narrow terminals. Only the `+`/`−`
+ * Changes counts are colorized so the card stays legible on the user's restored
+ * (possibly light) terminal background. `colorize` is injected — pass an
+ * identity function to assert plain structure.
  */
 export function formatExitSummaryCard(
   data: ExitSummaryData,
   { colorize, columns }: FormatExitSummaryCardOptions
 ): string {
-  const rows = ROW_LABELS.map((label) => renderRow(label, data, colorize));
+  const rows = ROW_LABELS.map((label) => renderRow(label, data, colorize)).filter(
+    (row): row is string => row !== undefined
+  );
   return renderCard(rows, columns).join('\n');
 }
 
 function renderCard(rows: readonly string[], columns: number): string[] {
+  // Keep the banner/rows separator only when there is at least one row to show.
+  const content = rows.length > 0 ? ['', ...rows] : [];
   for (const header of [bannerLines(), [PRODUCT_NAME]]) {
-    const card = boxed([...header, '', ...rows], { width: visibleLength });
+    const card = boxed([...header, ...content], { width: visibleLength });
     if (cardWidth(card) <= columns) {
       return card;
     }
@@ -54,14 +59,27 @@ function cardWidth(lines: readonly string[]): number {
   return lines.reduce((max, line) => Math.max(max, visibleLength(line)), 0);
 }
 
-function renderRow(label: RowLabel, data: ExitSummaryData, colorize: Colorize): string {
-  return `${label.padEnd(LABEL_WIDTH)}${COLUMN_GAP}${renderValue(label, data, colorize)}`;
+function renderRow(
+  label: RowLabel,
+  data: ExitSummaryData,
+  colorize: Colorize
+): string | undefined {
+  const value = renderValue(label, data, colorize);
+  if (value === undefined) {
+    return undefined;
+  }
+  return `${label.padEnd(LABEL_WIDTH)}${COLUMN_GAP}${value}`;
 }
 
-function renderValue(label: RowLabel, data: ExitSummaryData, colorize: Colorize): string {
+/** Returns the rendered value, or `undefined` when the row has no data to show. */
+function renderValue(
+  label: RowLabel,
+  data: ExitSummaryData,
+  colorize: Colorize
+): string | undefined {
   if (label === 'Changes') {
     if (data.changes === undefined) {
-      return placeholder(colorize);
+      return undefined;
     }
     const added = colorize(`${INSERTIONS_SIGN}${data.changes.insertions}`, theme.colors.accentGreen);
     const removed = colorize(`${DELETIONS_SIGN}${data.changes.deletions}`, theme.colors.errorRed);
@@ -69,12 +87,9 @@ function renderValue(label: RowLabel, data: ExitSummaryData, colorize: Colorize)
   }
 
   if (label === 'Duration') {
-    return data.durationMs === undefined ? placeholder(colorize) : formatDuration(data.durationMs);
+    return data.durationMs === undefined ? undefined : formatDuration(data.durationMs);
   }
 
-  return placeholder(colorize);
-}
-
-function placeholder(colorize: Colorize): string {
-  return colorize(PLACEHOLDER_MARKER, theme.colors.muted);
+  // Cost, Tokens, and Resume have no data source yet — omitted until they do.
+  return undefined;
 }

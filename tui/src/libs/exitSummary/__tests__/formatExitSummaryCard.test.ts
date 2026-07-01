@@ -4,12 +4,8 @@ import type { Colorize } from '@libs/exitSummary/types.ts';
 
 const identity: Colorize = (text) => text;
 
-function countMarker(card: string, marker: string): number {
-  return (card.match(new RegExp(marker, 'g')) ?? []).length;
-}
-
 describe('formatExitSummaryCard', () => {
-  it('renders a bordered banner card with the five rows in order (covers R2, R3, R10)', () => {
+  it('renders a bordered banner card with only the rows that carry data (covers R2, R3, R10)', () => {
     const card = formatExitSummaryCard(
       { changes: { insertions: 12, deletions: 4 }, durationMs: 125_000 },
       { colorize: identity, columns: 80 }
@@ -21,24 +17,45 @@ describe('formatExitSummaryCard', () => {
     expect(card).toContain('█');
     expect(card).toContain('+12 −4');
     expect(card).toContain('2m 5s');
-    // Cost, Tokens, Resume are placeholders (Changes + Duration are real).
-    expect(countMarker(card, '—')).toBe(3);
 
-    const order = ['Changes', 'Duration', 'Cost', 'Tokens', 'Resume'].map((label) =>
-      card.indexOf(label)
-    );
-    expect(order.every((index) => index >= 0)).toBe(true);
-    expect(order).toEqual([...order].sort((a, b) => a - b));
+    // Cost, Tokens, and Resume have no data yet, so they are omitted entirely.
+    expect(card).not.toContain('—');
+    expect(card).not.toContain('Cost');
+    expect(card).not.toContain('Tokens');
+    expect(card).not.toContain('Resume');
+
+    // The rows present keep their order: Changes before Duration.
+    const changesIndex = card.indexOf('Changes');
+    const durationIndex = card.indexOf('Duration');
+    expect(changesIndex).toBeGreaterThanOrEqual(0);
+    expect(durationIndex).toBeGreaterThan(changesIndex);
   });
 
-  it('renders Changes as a placeholder when unavailable, e.g. non-repo (covers AE3)', () => {
+  it('omits the Changes row when unavailable, e.g. non-repo (covers AE3)', () => {
     const card = formatExitSummaryCard(
       { changes: undefined, durationMs: 1_000 },
       { colorize: identity, columns: 80 }
     );
 
-    // Changes + Cost + Tokens + Resume are placeholders; Duration is real.
-    expect(countMarker(card, '—')).toBe(4);
+    // Empty rows are dropped rather than shown as a placeholder.
+    expect(card).not.toContain('Changes');
+    expect(card).not.toContain('—');
+    expect(card).toContain('Duration');
+    expect(card).toContain('1s');
+  });
+
+  it('omits every row when no stat has data', () => {
+    const card = formatExitSummaryCard(
+      { changes: undefined, durationMs: undefined },
+      { colorize: identity, columns: 80 }
+    );
+
+    expect(card).not.toContain('Changes');
+    expect(card).not.toContain('Duration');
+    expect(card).not.toContain('—');
+    // Only the bordered block banner remains — no stat rows.
+    expect(card).toContain('╭');
+    expect(card).toContain('█');
   });
 
   it('degrades to a single-line wordmark box when the banner will not fit (covers R11)', () => {
@@ -52,7 +69,7 @@ describe('formatExitSummaryCard', () => {
     expect(card).not.toContain('█');
   });
 
-  it('drops the border and stacks rows plainly on a very narrow terminal (covers R11)', () => {
+  it('drops the border and stacks the populated rows plainly on a very narrow terminal (covers R11)', () => {
     const card = formatExitSummaryCard(
       { changes: { insertions: 0, deletions: 0 }, durationMs: 0 },
       { colorize: identity, columns: 15 }
@@ -60,8 +77,10 @@ describe('formatExitSummaryCard', () => {
     const lines = card.split('\n');
 
     expect(card).not.toContain('╭');
-    expect(lines).toHaveLength(5);
+    // Only Changes and Duration carry data, so exactly two rows stack.
+    expect(lines).toHaveLength(2);
     expect(lines[0].startsWith('Changes')).toBe(true);
+    expect(lines[1].startsWith('Duration')).toBe(true);
     expect(card).toContain('+0 −0');
   });
 

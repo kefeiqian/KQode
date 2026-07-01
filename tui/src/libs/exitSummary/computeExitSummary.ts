@@ -15,7 +15,7 @@ export type ComputeExitSummaryDeps = {
  * Builds {@link ExitSummaryData} from the session store.
  *
  * `durationMs` is the elapsed time since the seeded start; an unseeded start
- * (`0`) yields `undefined` so Duration renders a placeholder rather than a
+ * (`0`) yields `undefined` so the Duration row is omitted rather than showing a
  * decades-long value. `changes` is the exit-time working-tree delta minus the
  * startup baseline (clamped at zero so pre-existing churn and mid-session
  * commits never go negative); a missing baseline or read yields `undefined`.
