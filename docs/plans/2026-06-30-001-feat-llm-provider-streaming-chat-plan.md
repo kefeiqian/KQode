@@ -80,9 +80,9 @@ Traced from the origin requirements doc. This plan satisfies all 18 origin requi
 ### Relevant Code and Patterns
 - `src/backend.rs` — synchronous `lsp-server` stdio loop; currently matches only `Message::Request` and returns a `Response`. Streaming requires cloning `connection.sender` and emitting `Message::Notification`.
 - `src/protocol.rs` — `RpcMethod` enum, method-name constants, and typed params/results with `serde(deny_unknown_fields)`/`camelCase`. New methods/notifications follow this constant + typed-struct pattern (AGENTS.md: no hard-coded protocol names).
-- `src/session_store.rs`, `src/session_protocol.rs` (homepage U9/U10) — `rusqlite` bundled SQLite under `~/.kqcode/`; tables `sessions`, `session_messages`, `session_context`, `repo_memory`; methods `kqode.session.start/list/resume` and `kqode.message.submit(sessionId, text)`. This plan extends the schema, adds a versioned migration path, and adds append-only session-log writes ahead of SQLite indexing.
+- `src/session_store.rs`, `src/session_protocol.rs` (introduced by this plan's U9/U10) — `rusqlite` bundled SQLite under `~/.kqcode/`; tables `sessions`, `session_messages`, `session_context`, `repo_memory`; methods `kqode.session.start/list/resume` and `kqode.message.submit(sessionId, text)`. U9/U10 create the base store; the streaming units then extend the schema, add a versioned migration path, and add append-only session-log writes ahead of SQLite indexing.
 - `tui/src/libs/backend/` — `vscode-jsonrpc` client (`backendClient.ts`, `processBackendClient.ts`, `messageProtocol.ts`, `sessionProtocol.ts`). New `modelProtocol.ts` and notification wiring attach here.
-- `tui/src/components/` — `HomeScreen`, `BodyPane`, `StatusBar` (static `GPT-5.5` affordance), `PromptComposer`, `ResumeSessionList` (homepage `/resume` command pattern to mirror for `/model`).
+- `tui/src/components/` — `HomeScreen`, `BodyPane`, `StatusBar` (static `GPT-5.5` affordance), `PromptComposer` from the homepage slice; `ResumeSessionList` and the `/resume` command pattern are added by this plan's U10 and mirrored for `/model`.
 - `tui/src/state/` — Jotai atoms (`homeScreenAtoms.ts`, `composerAtoms.ts`). Shared model/transcript state uses Jotai; isolated input editing stays component-local (per project convention).
 - File-size guideline: keep new source files ≤ ~200 lines; split modules accordingly.
 
@@ -278,7 +278,7 @@ sequenceDiagram
 
 ## Implementation Units
 
-Two phases: **Phase A** builds the Rust core (U1–U6); **Phase B** builds the TUI surfaces (U7–U8).
+Two phases: **Phase A** builds the Rust core (U1–U6) plus the SQLite session store (U9); **Phase B** builds the TUI surfaces (U7–U8) plus the `/resume` picker (U10).
 
 ### U1. Provider abstraction and Kimi streaming client
 
@@ -360,7 +360,7 @@ Two phases: **Phase A** builds the Rust core (U1–U6); **Phase B** builds the T
 
 **Requirements:** R3 (data), R5 (storage), R6, R17 (selection)
 
-**Dependencies:** U2, homepage U9 (session store)
+**Dependencies:** U2, U9 (session store)
 
 **Files:**
 - Create: `src/provider_store.rs`, `src/model_protocol.rs`
@@ -370,7 +370,7 @@ Two phases: **Phase A** builds the Rust core (U1–U6); **Phase B** builds the T
 - Modify: `src/session_store.rs` (schema/migration hook), `src/backend.rs` (route methods), `src/protocol.rs` (name constants), `src/lib.rs`
 
 **Approach:**
-- `src/session_store.rs` owns a single additive migration ladder using `PRAGMA user_version` (homepage baseline → this slice), executed transactionally and refusing newer-than-supported DB versions. Existing `sessions` / `session_messages` rows are preserved unchanged.
+- `src/session_store.rs` owns a single additive migration ladder using `PRAGMA user_version` (U9 baseline → this slice's additions), executed transactionally and refusing newer-than-supported DB versions. Existing `sessions` / `session_messages` rows are preserved unchanged.
 - New `provider_credentials` table: `provider_id` primary key, canonical base URL, default model, `envelope_version`, encrypted-key blob, nonce, created/updated. `clearKey` nulls the secret columns but keeps the provider row so active selection remains structurally valid.
 - Store the active provider/model as a session-scoped row plus a global default. Precedence is explicit: session-scoped > copied-at-session-start global default > unconfigured.
 - `provider_store.rs` exposes: configure (seal+store via U2), clear, list configured providers with a "key present" / credential-source flag (never returning the key), get-and-decrypt for a turn, set/get active selection. `configure` and `select` use UPSERT semantics so concurrent writers cannot duplicate rows.
@@ -390,7 +390,7 @@ Two phases: **Phase A** builds the Rust core (U1–U6); **Phase B** builds the T
 - Edge case: clearKey leaves the provider row and active selection intact but marks it unusable so submit routes to `/model`.
 - Error path: a corrupt/missing nonce or blob fails visibly without crashing the backend.
 - Integration: the stored blob column never equals the plaintext key (asserted on the row).
-- Integration: upgrading a homepage-slice DB to the new `user_version` preserves existing session/message rows and is idempotent on re-open.
+- Integration: upgrading a U9-baseline DB to the new `user_version` preserves existing session/message rows and is idempotent on re-open.
 - Error path: opening a newer-than-supported DB version fails clearly rather than writing against an unknown schema.
 
 **Verification:**
@@ -526,11 +526,11 @@ Two phases: **Phase A** builds the Rust core (U1–U6); **Phase B** builds the T
 - Modify: `tui/src/App.tsx` (route exact `/model`), `tui/src/components/StatusBar.tsx`, `tui/src/libs/backend/processBackendClient.ts`
 
 **Approach:**
-- Mirror the homepage `/resume` command pattern: treat exact `/model` (trimmed) as a command; App owns routing and backend calls; `ModelSelect` is display-only. The surface shows a flat quick-switch list of configured (provider, model) entries with the active one marked, plus an "Add / configure provider" entry; selecting a configured entry calls `kqode.model.select`; the add entry launches the wizard with `MaskedKeyInput` (no plaintext echo) then `kqode.model.configure`.
+- Mirror the `/resume` command pattern (U10): treat exact `/model` (trimmed) as a command; App owns routing and backend calls; `ModelSelect` is display-only. The surface shows a flat quick-switch list of configured (provider, model) entries with the active one marked, plus an "Add / configure provider" entry; selecting a configured entry calls `kqode.model.select`; the add entry launches the wizard with `MaskedKeyInput` (no plaintext echo) then `kqode.model.configure`.
 - With only Kimi wired, the list shows Kimi (active or "needs key") + the add entry; built to scale to N providers. The status bar reflects the active provider/model (replacing the static affordance, R6). When a submit returns the no-key outcome (R7), open the `/model` configuration path.
 - The surface also distinguishes key states (`configured`, `ephemeral env`, `needs key`, `stored key unrecoverable`) so a lost keychain item routes the user to explicit reconfiguration rather than silently falling back.
 - Keyboard/focus contract: Up/Down moves the row selection, Enter confirms, Escape cancels/backtracks one level, and focus returns to the composer on close. If `/model` was opened because submit returned `needsConfiguration`, the submitted prompt is restored into the composer after configure/cancel and requires an explicit resubmit rather than auto-sending.
-- Shared state (active model, configured list, `/model` mode) in Jotai; masked-input editing stays component-local. Keep non-color affordances (pointer marker, error markers) consistent with the homepage picker.
+- Shared state (active model, configured list, `/model` mode) in Jotai; masked-input editing stays component-local. Keep non-color affordances (pointer marker, error markers) consistent with the `/resume` picker (U10).
 
 **Patterns to follow:**
 - `tui/src/components/ResumeSessionList.tsx` picker + App command routing; Jotai atoms convention; existing `tui/src/libs/backend/` separation between protocol/process client code and TUI components.
@@ -590,6 +590,103 @@ Two phases: **Phase A** builds the Rust core (U1–U6); **Phase B** builds the T
 
 ---
 
+### U9. Add the SQLite session store and session JSON-RPC methods
+
+**Goal:** Add a Rust-owned local SQLite session store under `~/.kqcode/` and expose narrow JSON-RPC methods for starting, recording, listing, and resuming sessions.
+
+**Requirements:** R17
+
+**Dependencies:** None (relies on the homepage JSON-RPC backend as a prerequisite; see Dependencies / Prerequisites)
+
+**Approach:**
+- Add SQLite storage under the Rust backend, not under display components or TUI-only state.
+- Use `rusqlite` with bundled SQLite (or an equivalent self-contained SQLite strategy) so packaged backends do not require system SQLite, pkg-config, vcpkg, or platform-specific runtime libraries.
+- Place the SQLite database under `~/.kqcode/` by default, with a test-only override so integration tests do not write to the real user profile.
+- Create a small schema with `sessions`, `session_messages`, `session_context`, and `repo_memory` tables. Include stable ids, canonical absolute `workspace_cwd`, git root/repo key when detected, relative workspace subpath from the git root, `created_at`, `updated_at`, title/last-prompt metadata, message order, role/kind, status, text/content JSON, context fragments, and repo-memory kind/source fields.
+- Keep writes explicit and ordered: start session, record each user prompt when it is sent to the backend, record the completed assistant response/error, and update session `updated_at`/last prompt. Do not persist frontend-only queued prompts or validation-only errors in this slice.
+- Record repo memory only through an explicit session API/event with structured content. It must not infer broad semantic memory from arbitrary prompt text, and automatic repo-memory injection into the model context is deferred to a later memory-focused slice.
+- Add JSON-RPC methods for `kqode.session.start`, `kqode.session.list`, `kqode.session.resume`, and extend `kqode.message.submit` to require `sessionId`.
+- Session listing is always scoped to the current canonical absolute `workspaceCwd`; all-workspace browsing is out of scope for this slice. Canonicalization should resolve symlinks with best-effort realpath, normalize separators, and apply platform-appropriate case normalization where the filesystem is case-insensitive.
+- Restore backend-observed transcript/context rows in stable message order and restore repo-memory rows for the session's git repo key. Frontend-only queued prompts from a crashed TUI are not restored because they were never sent to the backend.
+- Keep session persistence scoped: no full trace replay, checkpoint/rewind/fork, rename/delete/export, cost accounting, or tool session state.
+
+**Patterns to follow:**
+- KQode architecture already assigns durable session state to Rust and SQLite indexes; keep the TUI as a protocol client.
+- Reference research shows useful precedent for project-scoped session files/lists, workdir validation, and replayable append-style records.
+
+**Test scenarios:**
+- Happy path: starting the backend creates a SQLite database and a session row for the current `workspaceCwd`.
+- Happy path: the SQLite database is created under a test-overridden KQode home path and the production default resolves under `~/.kqcode/`.
+- Happy path: packaged backend smoke tests confirm SQLite open/read/write works on each supported target without system SQLite dependencies.
+- Happy path: starting a session inside a git repo stores git root/repo identity plus the relative workspace subpath and returns explicitly stored repo-memory rows for that repo.
+- Happy path: submitting a prompt records the user message and the matching assistant response with exact text and stable order.
+- Happy path: explicitly written repo-memory rows are restored for later sessions in the same git repo, including sessions launched from subfolders with distinct relative workspace subpaths.
+- Happy path: listing sessions returns current-workspace sessions ordered by most recently updated.
+- Happy path: resuming a session returns metadata, context rows, repo memory rows, and transcript entries in display order.
+- Edge case: starting or resuming outside a git repo skips repo memory and still restores session transcript/context.
+- Edge case: symlink/case-variant paths that canonicalize to the same workspace can resume; paths that canonicalize differently return a typed JSON-RPC error and do not switch cwd.
+- Edge case: malformed/corrupt persisted rows fail visibly and do not crash the TUI process.
+- Error path: SQLite open/write failure returns an explicit backend error that renders red in the TUI.
+
+**Verification:**
+- A killed and restarted TUI can recover the persisted transcript for a selected session without requiring daemon mode.
+
+---
+
+### U10. Implement `/resume` session picker and restore flow
+
+**Goal:** Make `/resume` the first active slash command: list persisted sessions, let the user choose one, restore transcript/context, and continue appending prompts to that session.
+
+**Requirements:** R12, R17
+
+**Dependencies:** U9 (and the homepage TUI composer/submit surfaces as a prerequisite; see Dependencies / Prerequisites)
+
+**Approach:**
+- Treat `/resume` as a command only when the composer content is exactly `/resume` after trimming. Other slash-prefixed text remains normal prompt content for this slice.
+- On `/resume`, call the backend session list method for the current absolute `workspaceCwd` and render only sessions whose stored canonical workspace path matches it, with title/id, updated time, workspace path, and last prompt.
+- While the session list is loading, render a compact loading animation directly under the input composer in the same area where the list will appear.
+- During session-list loading, treat the composer as command/list mode: do not append typed characters to the prompt, preserve the pre-`/resume` draft, and let Escape cancel back to the composer when possible.
+- Render the session list directly under the input composer, not as a full-screen overlay. Show a 5-row visible window over the session list, highlight the currently selected row, and scroll the window as the selection moves.
+- Prefix the selected session row with a non-color pointer such as `>` in addition to any color/inverse highlight.
+- Apply the picker-open vertical layout contract: BodyPane shrinks first, list height is `min(5, availableRowsForPicker)`, and cwd/composer remain higher priority than decorative/status details.
+- Use Up/Down arrow keys to move the highlighted selection; Enter resumes the highlighted session; Escape cancels and returns focus to the composer.
+- On selection, call session resume, replace the visible transcript/context with restored entries, set the active `sessionId`, and keep the composer focused for the next prompt.
+- During session restore, disable prompt submit and preserve any draft text until restore completes or fails.
+- If a direct resume request somehow targets a session from another canonical workspace path, show a red error and keep the current session; never switch cwd or offer cross-workspace resume.
+- If the active queue has unsent/in-flight prompts, block `/resume` with a red error until the queue is idle.
+- Keep session management minimal: no delete, rename, archive, export, checkpoint, rewind, or fork in this slice.
+
+**Patterns to follow:**
+- Use a display-only Ink component for the picker; App owns command routing and backend calls.
+- Keep loading animations terminal-safe, deterministic in tests, and isolated from persisted transcript/session state.
+- Keep important states distinguishable without color: errors include text markers, selected rows include a pointer marker, loading includes static fallback text, and pending rows retain `(pending)`.
+- Reference research favors project/workdir-scoped session lists and explicit workdir validation before resume; this slice tightens that to same-canonical-workspace-only.
+
+**Test scenarios:**
+- Happy path: `/resume` opens a current-workspace session list sorted by updated time.
+- Happy path: while `/resume` is fetching sessions, a compact loading animation appears under the input bar and is replaced by the session list.
+- Happy path: typed draft text before `/resume` is preserved while the session list loads and after Escape cancel.
+- Happy path: the resume list appears under the input bar with 5 visible rows, a highlighted selected row, and Up/Down arrow navigation that scrolls beyond the visible window.
+- Happy path: with colors stripped or `NO_COLOR` set, the selected row is still identifiable by `>` and errors remain identifiable by `ERROR:`/`!`.
+- Happy path: opening `/resume` shrinks BodyPane first while preserving cwd, composer, picker rows, and bottom status bar at normal heights.
+- Edge case: short terminal height renders fewer than 5 picker rows without hiding the composer or cwd.
+- Happy path: selecting a session restores prior user prompts and assistant response/error entries, then a new prompt appends to the restored session.
+- Happy path: restored sessions in a git repo include explicitly written repo-memory rows for that git repo and preserve the launched subpath metadata.
+- Edge case: no sessions shows an empty-state message and returns to the composer without crashing.
+- Edge case: fewer than 5 sessions renders only the available rows without empty selectable placeholders.
+- Edge case: slash text other than exact `/resume` submits as normal prompt content.
+- Error path: attempting `/resume` while queued/in-flight prompts exist shows a red error and does not switch sessions.
+- Error path: backend list/resume failure shows a red error and preserves the current session.
+- Error path: a resume request for a different canonical workspace path shows a red error and preserves the current session/cwd.
+- Error path: loading animation stops when list/resume fails or Escape cancels.
+- Error path: session list or restore failure returns focus to the composer and preserves the prior draft/current session.
+- Error path: red errors retain non-color error markers in color-stripped output.
+
+**Verification:**
+- A developer can run the TUI, submit prompts, exit, relaunch, type `/resume`, select the previous session, see the restored transcript/context, and continue submitting prompts into that session.
+
+---
+
 ## Acceptance Coverage Matrix
 
 | Origin AE | Requirement(s) | Covered by |
@@ -609,7 +706,7 @@ Two phases: **Phase A** builds the Rust core (U1–U6); **Phase B** builds the T
 - **API surface parity:** the method/notification name constants must match exactly across Rust (`protocol.rs`/`model_protocol.rs`) and the shared TS module; the TS JSON-RPC client must handle interleaved responses and notifications and correlate all streaming events by `turnId`.
 - **Concurrency and cleanup:** one active turn per session, a bounded global in-flight count, notification coalescing/backpressure rules, and guaranteed registry cleanup on success, cancel, disconnect, backend shutdown, and admission rejection are part of the contract, not implementation details.
 - **Integration coverage:** streaming + compaction + persistence interplay is only proven end-to-end (U6/U8) — mock-provider integration tests, not unit mocks alone.
-- **Unchanged invariants:** `/resume`, the no-daemon child-process model, and bottom-stuck TUI layout + manual cursor contract are preserved; this plan extends the homepage persistence model by adding versioned migrations and the append-only session log rather than rewriting the user-facing session shape.
+- **Unchanged invariants:** the no-daemon child-process model and bottom-stuck TUI layout + manual cursor contract are preserved. `/resume` and the SQLite session store are delivered by this plan (U9/U10) rather than assumed from homepage; this plan adds versioned migrations and the append-only session log on top of them without rewriting the user-facing session shape.
 
 ---
 
@@ -634,16 +731,16 @@ Two phases: **Phase A** builds the Rust core (U1–U6); **Phase B** builds the T
 ## Phased Delivery
 
 ### Phase A — Rust core (headless-capable)
-- U1 provider + Kimi client, U2 secrets, U3 credential/model store + methods, U4 system prompt/assembly, U5 compaction, U6 streaming turn. The core can be exercised headlessly via the JSON-RPC backend before any TUI work.
+- U9 SQLite session store + session JSON-RPC methods (persistence foundation for U3/U6), U1 provider + Kimi client, U2 secrets, U3 credential/model store + methods, U4 system prompt/assembly, U5 compaction, U6 streaming turn. The core can be exercised headlessly via the JSON-RPC backend before any TUI work.
 
 ### Phase B — TUI surfaces
-- U7 `/model` flow + status, U8 streaming render + cancel + errors. Depends on the Phase A methods/notifications.
+- U7 `/model` flow + status, U8 streaming render + cancel + errors, U10 `/resume` session picker + restore. Depends on the Phase A methods/notifications.
 
 ---
 
 ## Dependencies / Prerequisites
 
-- This plan assumes the homepage/session slice described in `docs/plans/2026-06-25-003-feat-first-ink-tui-homepage-plan.md` has landed first, including session identity, `/resume`, SQLite transcript persistence, and the TUI-owned Rust child-process boundary. If that slice is still not implemented, it is a prerequisite rather than hidden scope in this document.
+- This plan assumes the homepage slice described in `docs/plans/2026-06-25-003-feat-first-ink-tui-homepage-plan.md` has landed first, including the source-mode Ink TUI, its component/theme patterns, the TUI-owned Rust child-process boundary, and the JSON-RPC `kqode.message.submit` flow. Session identity, `/resume`, and SQLite transcript persistence are delivered by this plan (U9/U10), not assumed as prerequisites. If the homepage slice is still not implemented, it is a prerequisite rather than hidden scope in this document.
 
 ---
 

@@ -51,8 +51,8 @@ KQode currently has a starter Rust binary and a checked-in starter TypeScript TU
 
 - [x] R19. Queue consecutive non-empty submits in order: the active request is sent to the backend, later submits appear immediately as user prompts marked `(pending)`, and the queue drains one request at a time as ACKs arrive.
 - [x] R20. Render frontend validation failures and backend failure messages in the centralized theme error red.
-- [x] R30. Prevent terminal text injection by sanitizing all user prompt, backend ACK, backend error, and restored transcript text before rendering. Persist exact raw text when needed, but never render control sequences as executable terminal control.
-- [x] R29. Show a small terminal-safe loading animation for user-visible loading states such as backend/session startup, `/resume` session list loading, and session restore.
+- [x] R30. Prevent terminal text injection by sanitizing all user prompt, backend ACK, and backend error text before rendering. Persist exact raw text when needed, but never render control sequences as executable terminal control.
+- [x] R29. Show a small terminal-safe loading animation for user-visible loading states such as backend startup.
 
 **Plan-added technical constraints**
 
@@ -67,35 +67,25 @@ KQode currently has a starter Rust binary and a checked-in starter TypeScript TU
 
 - [x] **Origin acceptance examples:** AE1 first render, AE2 composer wrapping, AE3 submit-to-backend response.
 
-**Plan-added session requirements**
-
-- [x] R21. Create a durable local session when the TUI starts, scoped to `workspaceCwd`, with session id, title/last prompt metadata, created/updated timestamps, and current status stored in SQLite.
-- [x] R22. Persist each user prompt only after it is sent to the Rust backend, plus the matching backend ACK/error needed to reconstruct the durable transcript. Frontend-only queued prompts and validation errors remain in-memory UI state for this slice.
-- [x] R23. Persist first-slice context needed to resume the session: workspace cwd, detected git repo identity when available, app version, backend mode, current transcript, message ordering, and serialized context fragments reserved for future agent context.
-- [x] R24. Implement `/resume` as the only active slash command in this slice. It opens a session list, scoped to the current `workspaceCwd` by default, and shows session title/id, updated time, workspace path, and last prompt.
-- [x] R25. Selecting a session restores its persisted transcript/context into the TUI body and continues future submits in that same session.
-- [x] R26. Allow resume only when the selected session's stored canonical absolute `workspaceCwd` matches the current canonical absolute `workspaceCwd`; sessions from other working directories must not be selectable/resumable and must never switch the user's cwd.
-- [x] R27. When `workspaceCwd` is inside a git repository, persist and restore explicitly written repo-scoped memory rows for that repository. Store memory under the detected git root/repo key plus the session's relative workspace subpath; automatic LLM-based memory extraction/injection is deferred.
-
 ---
 
 ## Scope Boundaries
-- [x] Real slash command execution remains deferred except for `/resume`; `@` file mentions, help overlays, and Tab navigation remain inert visual affordances.
+- [x] Real slash command execution remains deferred; `/` commands, `@` file mentions, help overlays, and Tab navigation remain inert visual affordances.
 - [x] Model selection, provider calls, streaming assistant output, prompt-history navigation/editing, and full editor behavior are deferred.
-- [x] Full session accounting, trace replay, cost display, approvals, diff panels, rename/delete/export, and checkpoint/rewind/fork remain deferred. Persistent session transcript/history needed for `/resume` is in scope.
-- [x] Daemon mode is explicitly out of scope for this milestone and is not a planned future direction: do not introduce `kqoded`, local sockets, listening ports, background services, or backend processes that survive the TUI. This product shape uses only a TUI-owned child Rust process over JSON-RPC stdio. Any in-flight work terminates if the TUI or child backend terminates; recovery comes from persisted session state on a later launch.
+- [x] Full session accounting, durable session persistence, trace replay, cost display, approvals, diff panels, rename/delete/export, `/resume`, and checkpoint/rewind/fork remain deferred.
+- [x] Daemon mode is explicitly out of scope for this milestone and is not a planned future direction: do not introduce `kqoded`, local sockets, listening ports, background services, or backend processes that survive the TUI. This product shape uses only a TUI-owned child Rust process over JSON-RPC stdio. Any in-flight work terminates if the TUI or child backend terminates.
 - [x] Full theme configuration is deferred; centralized GitHub/Gemini-inspired theme tokens remain internal to this slice.
 - [x] The TUI lives under `tui/` for this slice, even though the architecture example mentions `apps/kqode-tui/`; the origin requirement takes precedence for now.
 - [x] Registry publishing, signed/notarized releases, auto-update, and daemon service installation are deferred; GitHub Release asset creation and channel-ready package artifacts for direct download, npm global install, Homebrew, and winget are in scope around the standalone executable.
 
 ### Deferred to Follow-Up Work
-- [x] Expand the first local session + ACK JSON-RPC boundary into the eventual full agent session protocol when KQode adds real model/tool/session events.
+- [x] Expand the first local ACK JSON-RPC boundary into the eventual full agent session protocol when KQode adds real model/tool/session events.
 - [x] Promote the `tui/` package into any future workspace layout if the repository later adopts the full proposed `apps/` and `packages/` structure.
 
 ### No-Daemon Product Decision
 - [x] User promise: KQode does not keep hidden background services running after the TUI exits. Work is owned by the visible `kqode` session and stops when the TUI or child backend terminates.
 - [x] Tradeoff accepted: KQode gains simpler local security, lifecycle, and install behavior, but users do not get background continuation after closing the terminal, multi-client attachment to one live backend, or a process owner for unattended long-running jobs.
-- [x] Recovery model: Persisted SQLite session state supports later inspection/resume of completed transcript/context, but interrupted in-flight work is not automatically continued.
+- [x] Recovery model: This slice does not persist session state, so interrupted in-flight work is not automatically continued and completed transcripts are not restored on a later launch.
 - [x] Reconsideration threshold: Reopen the no-daemon decision only with an explicit product decision document if KQode later commits to background execution while no TUI is open, multi-client live attachment, IDE/TUI/headless sharing of one live runtime, or unattended job ownership.
 
 ---
@@ -123,7 +113,7 @@ KQode currently has a starter Rust binary and a checked-in starter TypeScript TU
 - [x] Node `child_process.spawn` documentation: use argument arrays and `shell: false` for the Rust backend process rather than shelling through `exec`.
 - [x] Node SEA documentation and `postject` cover the single-executable packaging mechanism for the bundled Ink entrypoint and embedded assets.
 - [x] npm, Homebrew, and winget are distribution channels for prebuilt artifacts in this slice, not source-build mechanisms.
-- [x] JSON-RPC reference: use a library-backed request/response connection now for local session + ACK backend messages, while deferring the broader agent session protocol.
+- [x] JSON-RPC reference: use a library-backed request/response connection now for local ACK backend messages, while deferring the broader agent session protocol.
 - [x] NO_COLOR guidance: keep a later path for color-disabled terminals even though full theme configuration is out of scope.
 
 ---
@@ -142,10 +132,6 @@ KQode currently has a starter Rust binary and a checked-in starter TypeScript TU
 - [x] Use install channels as distribution wrappers, not alternate runtimes: npm global install, Homebrew, winget, and direct download should all select or install the same platform-specific `kqode` executable rather than rebuilding from source.
 - [x] Name path roles explicitly: `repoRoot` is the KQode repository root for Cargo/product metadata, `workspaceCwd` is the user's launch directory from `process.cwd()` when `kqode` starts and is displayed above the composer/used for backend execution, and `tuiPackageRoot` is the nested package directory.
 - [x] Keep a committed dummy React frontend project fixture under `tests/fixtures/dummy-react-app/` as read-only seed data and provide an optional cached complex Vite fixture through xtask: Automated tests and manual development runs must copy a selected fixture into ignored workspaces under `target/kqode-test-workspaces/` before running `kqode`, so edits do not dirty the repository.
-- [x] Keep session persistence Rust-owned: The Ink TUI calls narrow JSON-RPC session methods, while the Rust backend creates, records, lists, and resumes SQLite-backed sessions.
-- [x] Use SQLite for the first-slice session store: Store session metadata, backend-observed transcript/message rows, backend responses/errors, serialized context rows, and git-repo-scoped memory rows in a local database under KQode's home/cache area. Frontend queue state and validation-only errors remain in memory. Keep the schema compatible with later append-only JSONL replay work, but do not implement full trace/replay in this slice.
-- [x] Detect git repository identity during session start: If `workspaceCwd` is inside a git repo, store the normalized git root, a stable repo key, and the session's relative subpath from the git root, then restore explicitly written repo-scoped memory rows for that repo on session start/resume. If no git repo is found, skip repo memory without failing the session.
-- [x] Treat `/resume` as a local TUI command backed by the Rust session API: It lists sessions for the current workspace, restores persisted transcript/context after selection, and then continues appending prompts to the selected session.
 - [x] Use a guarded backend process launcher: Source-mode Cargo launch and dist-mode bundled-backend launch must share timeout, output caps, stdin-close, environment hardening, cleanup, and typed-error behavior.
 - [x] Fail closed on backend launch policy: The first slice may launch only the internal JSON-RPC ACK backend through the two planned modes; user-supplied executables, arbitrary shell strings, and backend path overrides are deferred.
 - [x] Treat multiline as visual wrapping only: Enter submits, while true newline editing, history, slash commands, and full editor behavior remain deferred.
@@ -162,12 +148,10 @@ KQode currently has a starter Rust binary and a checked-in starter TypeScript TU
 
 ### Local Data Handling
 
-- [x] All first-slice session data is local-only. Do not upload, sync, or export session SQLite data unless a future explicit export feature is added.
-- [x] Store KQode local data under the current user's profile directory at `~/.kqcode/`. The SQLite database and related local state should live under this directory, not inside the workspace repository.
-- [x] Create `~/.kqcode/` with per-user permissions where the platform supports it (for example `0700` for directories and `0600` for SQLite files on Unix-like systems).
-- [x] Do not persist environment variables, provider keys, tokens, or raw process environments. Backend diagnostics written to the session store should avoid known secret-bearing fields.
-- [x] Provide a documented local path and future deletion command target for clearing sessions; this slice may document manual deletion of `~/.kqcode/` before implementing a first-class delete command.
-- [x] Repo memory rows are explicit local records only. Automatic LLM memory extraction/injection and cross-session semantic memory ranking are deferred.
+- [x] Store KQode local data (such as the packaged backend cache) under the current user's profile directory at `~/.kqcode/`, not inside the workspace repository.
+- [x] Create `~/.kqcode/` with per-user permissions where the platform supports it (for example `0700` for directories and `0600` for files on Unix-like systems).
+- [x] Do not persist environment variables, provider keys, tokens, or raw process environments to local KQode data.
+- [x] Provide a documented local path for clearing KQode local data; this slice may document manual deletion of `~/.kqcode/` before a first-class delete command exists.
 
 ---
 
@@ -189,15 +173,13 @@ KQode currently has a starter Rust binary and a checked-in starter TypeScript TU
 - [x] Interactive development workspace: Provide Cargo-facing fixture commands that reset `target/kqode-test-workspaces/workspace/` from either the committed simple React fixture or a cached pinned Vite React template. Developers should run `kqode` from the copied workspace, never mutate the committed fixture directly.
 - [x] Multiline behavior: Implement visual wrapping only; do not add semantic newline entry in this slice.
 - [x] Post-submit display: Append each user prompt to the scrollable body immediately, show `(pending)` only for prompts waiting behind the active request, clear that marker when the prompt starts sending, then append or attach the backend ACK response for that prompt when it completes. Do not add real model/assistant conversation history yet.
-- [x] Session persistence behavior: `/resume` is the only active slash command in this slice; it restores persisted user/backend transcript entries, first-slice context, and git repo memory from SQLite, not from an in-memory-only TUI state.
-- [x] Session scope behavior: Session lists use the current canonical absolute `workspaceCwd`; a different-workspace session must not be resumable from this TUI instance and must return a typed error if requested directly.
 - [x] Empty submit behavior: Block empty or all-whitespace composer submits; still allow the backend message-submit method to ACK an empty string for contract completeness.
 - [x] Version source: Display the root Rust package version as the KQode product version, not the nested TUI package version.
 - [x] Prompt/output bounds: Enforce a 64 KiB decoded UTF-8 composer prompt cap before submit and a 128 KiB decoded UTF-8 display cap for backend/error output. These are application/UX limits, not JSON-RPC constraints. Transport framing remains library-owned; malformed frames are fatal transport errors, not normal method-level JSON-RPC errors.
 
 ### Deferred to Implementation
 
-- [x] Final remaining dependency versions: The first Ink/React/TypeScript/Vitest baseline is locked by `tui/bun.lock`; resolve remaining compatible JSON-RPC, bundling, process-cleanup, and Rust persistence dependencies when their units land.
+- [x] Final remaining dependency versions: The first Ink/React/TypeScript/Vitest baseline is locked by `tui/bun.lock`; resolve remaining compatible JSON-RPC, bundling, and process-cleanup dependencies when their units land.
 - [x] Final internal backend argument name: Use a hidden/internal JSON-RPC backend mode and keep it non-public; the exact argument spelling can follow the smallest Rust CLI implementation.
 - [x] Exact string-width handling: Start with Ink wrapping and add a width helper only if tests expose a narrow-terminal or wide-character issue.
 
@@ -212,7 +194,6 @@ KQode currently has a starter Rust binary and a checked-in starter TypeScript TU
 - [x] **TUI tests** (`vitest`, `ink-testing-library`): Deterministic component/input tests.
 - [x] **TypeScript JSON-RPC** (`vscode-jsonrpc`): Manage JSON-RPC request IDs, response routing, errors, and stream framing over the Rust child process stdio pipes.
 - [x] **Rust JSON-RPC** (`lsp-server`, `serde`, `serde_json`): Use proven JSON-RPC stdio message handling on the Rust side while defining only KQode's ACK method and params/result types.
-- [x] **Rust session persistence** (`rusqlite` with bundled SQLite, `serde_json`, UUID/time helpers): Store and restore first-slice session metadata, transcript entries, and context rows without adding daemon mode or relying on system SQLite at runtime.
 - [x] **Process boundary** (Node built-ins `node:child_process`, `node:path`, `node:fs`; `tree-kill`): Spawn Cargo or the bundled Rust backend without shelling out through `exec`, with timeout and cross-platform process-tree cleanup guards.
 - [ ] **Standalone executable packaging** (originally planned Node SEA + `postject`, superseded): Replaced by the Bun `--compile` path above, which builds the native `kqode` executable and launches the packaged Rust backend asset; Node SEA and `postject` are no longer used.
 - [x] **Distribution packaging** (release archives and checksums; registration guide for npm/Homebrew/winget): Produce GitHub Release-ready artifacts and document how package-manager manifests point at those release URLs.
@@ -249,30 +230,24 @@ tui/
       BackendClient.ts
       messageProtocol.ts
       processBackendClient.ts
-      sessionProtocol.ts
       __tests__/
         backendProcess.test.ts
         messageProtocol.test.ts
         processBackendClient.test.ts
-        sessionProtocol.test.ts
     components/
       BodyPane.tsx
       CwdLine.tsx
       Header.tsx
       HomeScreen.tsx
       PromptComposer.tsx
-      ResumeSessionList.tsx
       StatusBar.tsx
       __tests__/
         HomeScreen.test.tsx
         PromptComposer.test.tsx
-        ResumeSessionList.test.tsx
     state/
       composerReducer.ts
-      sessionTranscriptReducer.ts
       __tests__/
         composerReducer.test.ts
-        sessionTranscriptReducer.test.ts
     theme/
       themeConfig.ts
     __tests__/
@@ -281,11 +256,8 @@ tui/
 src/
   backend.rs
   protocol.rs
-  session_store.rs
-  session_protocol.rs
 tests/
   main.rs
-  session_store.rs
   fixtures/
     dummy-react-app/
       bun.lock
@@ -343,19 +315,13 @@ sequenceDiagram
     participant App as Ink App state
     participant Client as BackendClient
     participant Rust as Rust backend
-    participant DB as SQLite session store
 
     App->>Client: Start Rust JSON-RPC stdio backend
     Client-->>App: Backend ready or startup error
-    App->>Client: Start or resume session
-    Client->>Rust: kqode.session.start/resume
-    Rust->>DB: Create/load session metadata, context, transcript, repo memory
-    Rust-->>Client: Session id, restored state, and repo memory
     User->>Composer: Type prompt
     Composer->>App: Submit on Enter
     App->>Client: Submit prompt text
-    Client->>Rust: kqode.message.submit(sessionId, text)
-    Rust->>DB: Persist user/backend transcript entries
+    Client->>Rust: kqode.message.submit(text)
     Rust-->>Client: JSON-RPC ACK response over stdout
     Client-->>App: ACK result or error
     App-->>User: Append ACK to scrollable body
@@ -366,15 +332,12 @@ Source mode and packaged mode share the same JSON-RPC contract. Source mode laun
 ---
 
 ## First-Slice JSON-RPC Contract
-> *This contract defines the first local session + ACK protocol shape. It is intentionally not the mature agent session protocol, generated schema system, streaming assistant protocol, or cross-process daemon.*
+> *This contract defines the first local ACK protocol shape. It is intentionally not the mature agent session protocol, generated schema system, streaming assistant protocol, or cross-process daemon.*
 
-- [x] Process lifecycle: The TUI starts one Rust child backend when the TUI starts, keeps it for the TUI session, and terminates it on TUI exit. If the child backend crashes or the JSON-RPC transport dies, the TUI immediately marks the backend `dead`, shows a red backend-crashed state, marks any in-flight prompt failed, and pauses queued prompts. It must not silently restart in the background. A fresh child backend may be spawned only when the user types and submits a new non-empty prompt. Respawn restores persisted session metadata/context/transcript from SQLite, but does not retry or auto-resubmit interrupted work.
+- [x] Process lifecycle: The TUI starts one Rust child backend when the TUI starts, keeps it for the TUI session, and terminates it on TUI exit. If the child backend crashes or the JSON-RPC transport dies, the TUI immediately marks the backend `dead`, shows a red backend-crashed state, marks any in-flight prompt failed, and pauses queued prompts. It must not silently restart in the background. A fresh child backend may be spawned only when the user types and submits a new non-empty prompt. Respawn does not retry or auto-resubmit interrupted work.
 - [x] Transport framing: JSON-RPC 2.0 messages use the selected libraries' stdio stream framing. TypeScript uses `vscode-jsonrpc` stream readers/writers over child stdout/stdin; Rust uses `lsp-server` over stdio. Rust stdout must contain only JSON-RPC protocol frames; diagnostics go to stderr.
-- [x] Session start: method `kqode.session.start`, params containing absolute `workspaceCwd`, `appVersion`, and optional `resumeSessionId`; result contains `sessionId`, session metadata, restored context rows, restored transcript entries, and git repo memory rows when a repository is detected.
-- [x] Message submit: method `kqode.message.submit`, params containing `sessionId` and a single `text` string, and an ID that Rust mirrors back in the response.
-- [x] Session list: method `kqode.session.list`, params containing absolute `workspaceCwd`; the backend canonicalizes it before comparison and returns recent session summaries ordered by `updatedAt` descending for that canonical workspace only.
-- [x] Session resume: method `kqode.session.resume`, params containing `sessionId` and absolute `workspaceCwd`; result contains the selected session metadata, context rows, transcript entries, and git repo memory rows when available. If the selected session's stored canonical workspace path differs from the current canonical `workspaceCwd`, return a typed JSON-RPC error and do not change cwd.
-- [x] Success response: same ID and result `{ "message": "ACK: message received", "receivedText": string }` for message submits; the TUI displays both the ACK and `receivedText` in the body and persists them through the session store.
+- [x] Message submit: method `kqode.message.submit`, params containing a single `text` string, and an ID that Rust mirrors back in the response.
+- [x] Success response: same ID and result `{ "message": "ACK: message received", "receivedText": string }` for message submits; the TUI displays both the ACK and `receivedText` in the body.
 - [x] Error response: JSON-RPC 2.0 error response for valid requests with unsupported methods, invalid params, over-limit payloads, or internal backend failures. Malformed transport frames are fatal transport errors handled by the backend client lifecycle.
 - [x] Size limits: decoded request text is capped at 64 KiB UTF-8 before submit, and displayed backend/error output is capped at 128 KiB UTF-8. Transport frame parsing/framing stays owned by `vscode-jsonrpc` and `lsp-server`.
 - [x] Scope guard: no streaming deltas, tool events, assistant messages, generated protocol package, local socket, listening port, background service, checkpoint/rewind/fork, or cross-process daemon are introduced in this slice.
@@ -391,8 +354,7 @@ Source mode and packaged mode share the same JSON-RPC contract. Source mode laun
 | Backend error | The matching prompt is followed by a red "Rust backend failed" message; later queued prompts remain queued unless the backend lifecycle is fatal. |
 | Backend crashed | Body scrollview shows a red crash message such as "Rust backend crashed. Current request failed. Type a new prompt to restart the backend."; queued prompts remain visible but paused. |
 | Over limit | Composer/body feedback says the prompt exceeds the 64 KiB limit and must be shortened before submit, rendered in theme error red. |
-| Resume list | The `/resume` list renders directly under the input composer, shows at most 5 visible session rows, highlights the selected row, and supports Up/Down arrow navigation through the session list. |
-| Loading animation | While backend startup, session list fetch, or session restore is in progress, show a compact spinner/pulsing ellipsis in the affected area. The animation must be cosmetic only, stop on success/error/cancel, and degrade to static text when animation is unavailable. |
+| Loading animation | While backend startup is in progress, show a compact spinner/pulsing ellipsis in the affected area. The animation must be cosmetic only, stop on success/error/cancel, and degrade to static text when animation is unavailable. |
 
 | Viewport | Responsive behavior |
 |----------|---------------------|
@@ -410,25 +372,14 @@ Source mode and packaged mode share the same JSON-RPC contract. Source mode laun
 | Overflow marker | If older entries are clipped, show a compact marker such as `... earlier output hidden ...` at the top of the visible body. |
 | Manual scroll | Manual scroll controls are out of scope for this slice. |
 
-| Picker-open vertical layout | Behavior |
-|-----------------------------|----------|
-| Order | Header, BodyPane, cwd line, input composer, `/resume` list/loading row, bottom status bar. |
-| Body shrink | When the `/resume` list is open, BodyPane gives up rows first so cwd, composer, visible picker rows, and status bar remain visible where possible. |
-| List height | Use `min(5, availableRowsForPicker)` visible rows. If fewer than 5 rows are available, show as many as fit without hiding cwd or composer. |
-| Short terminal | Below the normal minimum height, preserve cwd, composer, and at least one picker row when possible; hide decorative/header/status details before hiding the composer. |
-| Empty/loading states | Loading and empty-state messages occupy the picker area under the composer and do not enter the transcript. |
-
 | Loading input state | Behavior |
 |---------------------|----------|
-| Backend/session startup | Composer may accept typed draft text, but Enter is disabled until a session/backend is ready; the draft is preserved on startup success or failure. |
-| `/resume` list fetch | Composer input is temporarily in command mode; typing is not appended to the prompt while the list is loading. Escape cancels loading when possible and restores the prior draft. |
-| Session restore | Composer is disabled while restored transcript/context is applied; any pre-existing draft is preserved and restored after success or failure. |
+| Backend startup | Composer may accept typed draft text, but Enter is disabled until the backend is ready; the draft is preserved on startup success or failure. |
 | Loading failure | Stop the animation, show a red error in the affected area, keep the current session/draft unchanged, and return focus to the composer unless the backend is dead. |
 
 | Non-color state markers | Behavior |
 |-------------------------|----------|
 | Errors | Every red error also includes a non-color marker such as `ERROR:` or `!` so the state remains clear with colors disabled. |
-| Selected resume row | The highlighted `/resume` row also uses a non-color pointer such as `>` so selection remains visible without color or inverse styling. |
 | Loading | Animated loading has a static text fallback such as `Loading...`; this text remains visible when animation/color is unavailable. |
 | Pending | Queued prompts keep the literal `(pending)` marker independent of color. |
 
@@ -439,7 +390,7 @@ Each implementation unit is intended to be landed as one atomic commit-sized cha
 
 After each commit-sized unit lands, run code review on the completed unit, then pause for user review and wait for explicit consent before starting the next unit.
 
-> Reconciliation note (2026-07-01): Units were re-aligned with delivered work. The standalone executable moved from U11 to **U9**; new as-built units **U10** (TUI state/backend architecture hardening) and **U11** (terminal control and rendering robustness) capture added features; the deferred SQLite session store and `/resume` picker moved to **U14** and **U15**. This was a deliberate, user-directed reconciliation rather than a routine split. The exit-summary card, Gemini-style theming, and LLM provider streaming chat are tracked in their own plans and are intentionally out of scope here.
+> Reconciliation note (2026-07-01): Units were re-aligned with delivered work. The standalone executable moved from U11 to **U9**; new as-built units **U10** (TUI state/backend architecture hardening) and **U11** (terminal control and rendering robustness) capture added features; the deferred SQLite session store and `/resume` picker were moved into the LLM provider/streaming-chat plan (`2026-06-30-001-feat-llm-provider-streaming-chat-plan.md`) as units **U9** and **U10**. This was a deliberate, user-directed reconciliation rather than a routine split. The exit-summary card, Gemini-style theming, and LLM provider streaming chat are tracked in their own plans and are intentionally out of scope here.
 
 - [ ] Review batching: after U2 and U3 land the static home screen and composer behavior, U4-U8 can be reviewed as one source-mode ACK integration batch because those units add the Rust backend mode, protocol wiring, guarded launcher, backend client, and submit/ACK UI integration.
 
@@ -447,11 +398,10 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 | Gate | Goal | Required units | Explicitly excluded from the gate |
 |------|------|----------------|-----------------------------------|
-| G1. Source-mode homepage ACK (done) | Prove AE1-AE3 with a local source-mode Ink UI and Rust ACK backend. This is the origin validation gate and must be runnable before persistence, standalone packaging, or release automation lands. | U1, U2, U3, U4, U5, U6, U7, U8 | SQLite sessions, `/resume`, repo memory, standalone executable, release archives, GitHub Release workflow |
+| G1. Source-mode homepage ACK (done) | Prove AE1-AE3 with a local source-mode Ink UI and Rust ACK backend. This is the origin validation gate and must be runnable before persistence, standalone packaging, or release automation lands. | U1, U2, U3, U4, U5, U6, U7, U8 | standalone executable, release archives, GitHub Release workflow |
 | G2. Local standalone executable (done) | Package the working TUI + Rust backend into a local standalone executable after G1 behavior is stable. | U9 | GitHub Release upload and package-manager registration |
-| G3. TUI architecture and terminal robustness (done) | Harden shared TUI state/backend module seams and terminal integration/rendering after the standalone executable works. | U10, U11 | SQLite sessions, `/resume`, release automation |
+| G3. TUI architecture and terminal robustness (done) | Harden shared TUI state/backend module seams and terminal integration/rendering after the standalone executable works. | U10, U11 | release automation |
 | G4. Release assets | Produce GitHub Release-ready archives/checksums and CI upload after the local standalone executable works. | U12, U13 | npm publish, Homebrew tap submission, winget submission, signing/notarization, auto-update |
-| G5. Durable session resume | Add SQLite persistence, `/resume`, restored transcript/context, and same-workspace session continuation. Deferred behind the delivered standalone/robustness work. | U14, U15 | Standalone executable and release automation |
 
 ### U1. Verify the Bun-powered nested Ink package scaffold
 
@@ -620,7 +570,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Approach:**
 - [x] Add a small internal JSON-RPC stdio backend mode selected by a command-line argument, with no model/provider/tool logic.
 - [x] Use `lsp-server` to read JSON-RPC requests from stdin and write JSON-RPC responses to stdout.
-- [x] Support only the message-submit method in this unit; do not add a daemon, tool dispatcher, or streaming assistant loop. U14 adds the separate first-slice session persistence methods.
+- [x] Support only the message-submit method in this unit; do not add a daemon, tool dispatcher, or streaming assistant loop.
 - [x] Define JSON-RPC method/event names, response status strings, error kinds, and non-obvious numeric limits as enums or named constants in `src/protocol.rs`; do not scatter hard-coded strings like `kqode.message.submit` or magic numbers through handlers/tests.
 - [x] Treat malformed transport/framing input as a fatal transport error handled by the backend client lifecycle; return JSON-RPC errors through the library response path for valid requests with unsupported methods or invalid params.
 - [x] Preserve a harmless default path for running the binary without the backend mode.
@@ -628,7 +578,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 - [x] Configure `Cargo.toml` so the binary target uses root `main.rs`; keep that file as argument dispatch only. Put backend loop and protocol types in modules under `src/` when implementation would otherwise push a file above roughly 200 lines.
 - [x] Use the hidden backend argument `--__kqode-json-rpc-backend`; reject extra backend-mode arguments and unsupported non-backend arguments with visible stderr.
 - [x] Expose `kqode` as both the library crate and binary target so tests can import protocol constants and spawn the compiled `CARGO_BIN_EXE_kqode` binary.
-- [x] Keep U4 message-submit params intentionally text-only (`{ "text": string }`) with unknown fields denied; session-bound params land with the later session-persistence methods.
+- [x] Keep U4 message-submit params intentionally text-only (`{ "text": string }`) with unknown fields denied; session-bound params are deferred and out of scope for this slice.
 - [x] Handle only JSON-RPC request frames in the backend loop: ignore notifications, return method/params errors for request-level failures, and treat unexpected JSON-RPC responses as fatal transport errors.
 
 **Patterns to follow:**
@@ -749,10 +699,10 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Approach:**
 - [x] Start one backend process for the TUI session and create a `vscode-jsonrpc` connection over its stdio pipes.
-- [x] Expose `message.submit` through the narrow backend-client interface for G1. U14/U15 extend the interface with `session.start`, `session.list`, and `session.resume`.
+- [x] Expose `message.submit` through the narrow backend-client interface for G1.
 - [x] Model backend lifecycle states as `starting`, `ready`, `closing`, and `dead`.
 - [x] Recoverable JSON-RPC method errors keep the process alive; fatal process/transport errors dispose the connection and mark it `dead`.
-- [x] On the next non-empty submit after `dead`, respawn the backend, restore the active session from SQLite, and continue from persisted state. Do not restart silently, do not provide a separate retry action, and do not automatically replay interrupted in-flight requests.
+- [x] On the next non-empty submit after `dead`, respawn the backend and continue. Do not restart silently, do not provide a separate retry action, and do not automatically replay interrupted in-flight requests.
 - [x] Enforce per-request timeout separately from startup timeout.
 
 **Patterns to follow:**
@@ -762,7 +712,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 - [x] Integration: the process client starts the Rust stdio backend, sends a JSON-RPC message-submit request, and receives the ACK message plus exact `receivedText`.
 - [x] Edge case: max-size allowed prompt returns exact `receivedText`, while over-limit prompt is rejected before spawn by the composer/App path; oversized display output is capped at 128 KiB without changing persisted exact text.
 - [x] Error path: malformed backend protocol output or JSON-RPC error response returns a typed client error.
-- [x] Error path: timeout kills the child, marks the client dead, shows a red backend-crashed error for the in-flight prompt, pauses queued prompts, and only a new non-empty submit respawns and restores persisted session state.
+- [x] Error path: timeout kills the child, marks the client dead, shows a red backend-crashed error for the in-flight prompt, pauses queued prompts, and only a new non-empty submit respawns the backend.
 
 **Verification:**
 - [x] The TUI has a deterministic JSON-RPC backend client seam that proves local Rust communication without exposing process details to display components.
@@ -783,7 +733,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Approach:**
 - [x] Inject the backend client into App state so tests can use a mock and production can use the process client.
-- [x] For G1, accept prompt submissions without durable session state. U14/U15 later add active `sessionId` state and transcript rehydration.
+- [x] For G1, accept prompt submissions without durable session state.
 - [x] Use a submitted prompt snapshot so the backend receives exactly what the composer submitted.
 - [x] Append every submitted user prompt to the body immediately and clear/refocus the composer so the next prompt can be typed while the backend is busy.
 - [x] Maintain an in-memory FIFO queue of submitted prompt snapshots; send only one backend request at a time and start the next queued request after the current request returns ACK or error.
@@ -792,13 +742,13 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 - [x] Render only sanitized display text for user prompts, backend ACK payloads, backend errors, validation errors, and restored transcript entries. Persisted raw text must not be passed directly to Ink `Text`.
 - [x] On success, append or attach the matching ACK message for the active prompt.
 - [x] On failure or timeout, show a visible red body error for the active prompt and keep later queued prompts in order unless the backend lifecycle is fatal.
-- [x] Keep G1 transcript state in memory. U14/U15 later persist transcript/context changes through the backend client.
+- [x] Keep G1 transcript state in memory.
 - [x] Keep R11 concrete: App submit must use only the backend client seam, and display components must not import backend/process logic.
 - [x] Leave README terminal-run documentation for the standalone executable unit after the directly-callable artifact exists.
 
 **Patterns to follow:**
 - [x] Layout components stay display-only; App owns cross-component state and backend calls.
-- [x] Scope boundaries keep slash commands other than `/resume`, model selection, tools, and provider calls unavailable.
+- [x] Scope boundaries keep slash commands, model selection, tools, and provider calls unavailable.
 
 **Test scenarios:**
 - [x] Covers AE3. Happy path: typing `hello from tui` and pressing Enter appends the user prompt immediately, sends it through the backend client, and appends `ACK: message received` in the body scrollview.
@@ -1022,123 +972,23 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 ---
 
-### U14. Add the SQLite session store and session JSON-RPC methods
-**Goal:** Add a Rust-owned local SQLite session store under `~/.kqcode/` and expose narrow JSON-RPC methods for starting, recording, listing, and resuming first-slice sessions.
-
-**Requirements:** R21, R22, R23, R24, R25, R26, R27. **Technical constraints:** T1.
-
-**Origin trace:** Extends F2 and AE3 so the ACK demo is durable and resumable instead of memory-only.
-
-**Dependencies:** U4, U5.
-
-**Approach:**
-- [ ] Add SQLite storage under the Rust backend, not under display components or TUI-only state.
-- [ ] Use `rusqlite` with bundled SQLite (or an equivalent self-contained SQLite strategy) so packaged backends do not require system SQLite, pkg-config, vcpkg, or platform-specific runtime libraries.
-- [ ] Place the SQLite database under `~/.kqcode/` by default, with a test-only override so integration tests do not write to the real user profile.
-- [ ] Create a small schema with `sessions`, `session_messages`, `session_context`, and `repo_memory` tables. Include stable ids, canonical absolute `workspace_cwd`, git root/repo key when detected, relative workspace subpath from the git root, `created_at`, `updated_at`, title/last-prompt metadata, message order, role/kind, status, text/content JSON, first-slice context fragments, and repo-memory kind/source fields.
-- [ ] Keep writes explicit and ordered: start session, record each user prompt when it is sent to the backend, record backend ACK/error, and update session `updated_at`/last prompt. Do not persist frontend-only queued prompts or validation-only errors in this slice.
-- [ ] Record repo memory only through an explicit session API/event with structured content. This slice proves storage and restore only; it must not infer broad semantic memory from arbitrary prompt text and must not inject repo memory into an LLM context because no LLM run exists in this slice.
-- [ ] Add JSON-RPC methods for `kqode.session.start`, `kqode.session.list`, `kqode.session.resume`, and extend `kqode.message.submit` to require `sessionId`.
-- [ ] Session listing is always scoped to the current canonical absolute `workspaceCwd`; all-workspace browsing is out of scope for this slice. Canonicalization should resolve symlinks with best-effort realpath, normalize separators, and apply platform-appropriate case normalization where the filesystem is case-insensitive.
-- [ ] Restore backend-observed transcript/context rows in stable message order and restore repo-memory rows for the session's git repo key. Frontend-only queued prompts from a crashed TUI are not restored because they were never sent to the backend.
-- [ ] Keep this as first-slice persistence only: no full trace replay, checkpoint/rewind/fork, rename/delete/export, cost accounting, or model/tool session state.
-
-**Patterns to follow:**
-- [ ] KQode architecture already assigns durable session state to Rust and SQLite indexes; keep the TUI as a protocol client.
-- [ ] Reference research shows useful precedent for project-scoped session files/lists, workdir validation, and replayable append-style records.
-
-**Test scenarios:**
-- [ ] Happy path: starting the backend creates a SQLite database and a session row for the current `workspaceCwd`.
-- [ ] Happy path: the SQLite database is created under a test-overridden KQode home path and the production default resolves under `~/.kqcode/`.
-- [ ] Happy path: packaged backend smoke tests confirm SQLite open/read/write works on each supported target without system SQLite dependencies.
-- [ ] Happy path: starting a session inside a git repo stores git root/repo identity plus the relative workspace subpath and returns explicitly stored repo-memory rows for that repo.
-- [ ] Happy path: submitting a prompt records the user message and matching ACK response with exact text and stable order.
-- [ ] Happy path: explicitly written repo-memory rows are restored for later sessions in the same git repo, including sessions launched from subfolders with distinct relative workspace subpaths.
-- [ ] Happy path: listing sessions returns current-workspace sessions ordered by most recently updated.
-- [ ] Happy path: resuming a session returns metadata, context rows, repo memory rows, and transcript entries in display order.
-- [ ] Edge case: starting or resuming outside a git repo skips repo memory and still restores session transcript/context.
-- [ ] Edge case: symlink/case-variant paths that canonicalize to the same workspace can resume; paths that canonicalize differently return a typed JSON-RPC error and do not switch cwd.
-- [ ] Edge case: malformed/corrupt persisted rows fail visibly and do not crash the TUI process.
-- [ ] Error path: SQLite open/write failure returns an explicit backend error that renders red in the TUI.
-
-**Verification:**
-- [ ] A killed and restarted first-slice TUI can recover the persisted ACK transcript for a selected session without requiring daemon mode.
-
----
-
-### U15. Implement `/resume` session picker and restore flow
-**Goal:** Make `/resume` the first active slash command: list persisted sessions, let the user choose one, restore transcript/context, and continue appending prompts to that session.
-
-**Requirements:** R10, R12, R21, R22, R23, R24, R25, R26, R27, R29.
-
-**Origin trace:** Extends F1/F2 by adding durable session selection and continuation.
-
-**Dependencies:** U2, U3, U8, U14.
-
-**Approach:**
-- [ ] Treat `/resume` as a command only when the composer content is exactly `/resume` after trimming. Other slash-prefixed text remains normal prompt content for this slice.
-- [ ] On `/resume`, call the backend session list method for the current absolute `workspaceCwd` and render only sessions whose stored canonical workspace path matches it, with title/id, updated time, workspace path, and last prompt.
-- [ ] While the session list is loading, render a compact loading animation directly under the input composer in the same area where the list will appear.
-- [ ] During session-list loading, treat the composer as command/list mode: do not append typed characters to the prompt, preserve the pre-`/resume` draft, and let Escape cancel back to the composer when possible.
-- [ ] Render the session list directly under the input composer, not as a full-screen overlay. Show a 5-row visible window over the session list, highlight the currently selected row, and scroll the window as the selection moves.
-- [ ] Prefix the selected session row with a non-color pointer such as `>` in addition to any color/inverse highlight.
-- [ ] Apply the picker-open vertical layout contract: BodyPane shrinks first, list height is `min(5, availableRowsForPicker)`, and cwd/composer remain higher priority than decorative/status details.
-- [ ] Use Up/Down arrow keys to move the highlighted selection; Enter resumes the highlighted session; Escape cancels and returns focus to the composer.
-- [ ] On selection, call session resume, replace the visible transcript/context with restored entries, set the active `sessionId`, and keep the composer focused for the next prompt.
-- [ ] During session restore, disable prompt submit and preserve any draft text until restore completes or fails.
-- [ ] If a direct resume request somehow targets a session from another canonical workspace path, show a red error and keep the current session; never switch cwd or offer cross-workspace resume.
-- [ ] If the active queue has unsent/in-flight prompts, block `/resume` with a red error until the queue is idle.
-- [ ] Keep session management minimal: no delete, rename, archive, export, checkpoint, rewind, or fork in this slice.
-
-**Patterns to follow:**
-- [ ] Use a display-only Ink component for the picker; App owns command routing and backend calls.
-- [ ] Keep loading animations terminal-safe, deterministic in tests, and isolated from persisted transcript/session state.
-- [ ] Keep important states distinguishable without color: errors include text markers, selected rows include a pointer marker, loading includes static fallback text, and pending rows retain `(pending)`.
-- [ ] Reference research favors project/workdir-scoped session lists and explicit workdir validation before resume; this slice tightens that to same-canonical-workspace-only.
-
-**Test scenarios:**
-- [ ] Happy path: `/resume` opens a current-workspace session list sorted by updated time.
-- [ ] Happy path: while `/resume` is fetching sessions, a compact loading animation appears under the input bar and is replaced by the session list.
-- [ ] Happy path: typed draft text before `/resume` is preserved while the session list loads and after Escape cancel.
-- [ ] Happy path: the resume list appears under the input bar with 5 visible rows, a highlighted selected row, and Up/Down arrow navigation that scrolls beyond the visible window.
-- [ ] Happy path: with colors stripped or `NO_COLOR` set, the selected row is still identifiable by `>` and errors remain identifiable by `ERROR:`/`!`.
-- [ ] Happy path: opening `/resume` shrinks BodyPane first while preserving cwd, composer, picker rows, and bottom status bar at normal heights.
-- [ ] Edge case: short terminal height renders fewer than 5 picker rows without hiding the composer or cwd.
-- [ ] Happy path: selecting a session restores prior user prompts and backend ACK/error entries, then a new prompt appends to the restored session.
-- [ ] Happy path: restored sessions in a git repo include explicitly written repo-memory rows for that git repo and preserve the launched subpath metadata.
-- [ ] Edge case: no sessions shows an empty-state message and returns to the composer without crashing.
-- [ ] Edge case: fewer than 5 sessions renders only the available rows without empty selectable placeholders.
-- [ ] Edge case: slash text other than exact `/resume` submits as normal prompt content.
-- [ ] Error path: attempting `/resume` while queued/in-flight prompts exist shows a red error and does not switch sessions.
-- [ ] Error path: backend list/resume failure shows a red error and preserves the current session.
-- [ ] Error path: a resume request for a different canonical workspace path shows a red error and preserves the current session/cwd.
-- [ ] Error path: loading animation stops when list/resume fails or Escape cancels.
-- [ ] Error path: session list or restore failure returns focus to the composer and preserves the prior draft/current session.
-- [ ] Error path: red errors retain non-color error markers in color-stripped output.
-
-**Verification:**
-- [ ] A developer can run the TUI, submit prompts, exit, relaunch, type `/resume`, select the previous session, see the restored transcript/context, and continue submitting prompts into that session.
-
----
-
 ## Acceptance Coverage Matrix
 | Origin acceptance | Planned coverage |
 |-------------------|------------------|
 | AE1 first render | `tui/src/components/__tests__/HomeScreen.test.tsx` verifies identity, version, cwd, prompt region, hints, model label, centralized GitHub/Gemini-inspired theme token usage, and resilient layout. |
 | AE2 composer wrapping | `tui/src/components/__tests__/PromptComposer.test.tsx` and `tui/src/state/__tests__/composerReducer.test.ts` verify typing, wrapping preservation, inert hints, exact submit snapshots, empty-submit blocking, and post-submit composer clearing. |
 | AE3 submit-to-ACK | `tests/main.rs`, `tui/src/backend/process/__tests__/backendProcess.test.ts`, `tui/src/backend/protocol/__tests__/messageProtocol.test.ts`, `tui/src/backend/client/__tests__/backendClient.test.ts`, `tui/src/__tests__/App.submit.test.tsx`, the standalone-executable smoke path, and U12 release-staging checks verify Rust JSON-RPC ACK, guarded launcher behavior, library-backed message protocol helpers, process client behavior, App queue state, exact prompt preservation in `receivedText`, user-prompt transcript display, queued/pending markers, red failure display, direct `kqode` invocation, and channel-ready packaging around the same executable. T1/T2/T3/T4 are covered by the Rust, TypeScript, standalone-executable, and distribution-staging tests. |
-| Plan-added session resume | `tests/session_store.rs`, `tui/src/backend/protocol/__tests__/sessionProtocol.test.ts`, `tui/src/components/__tests__/ResumeSessionList.test.tsx`, `tui/src/state/__tests__/sessionTranscriptReducer.test.ts`, and App submit/resume tests verify SQLite session creation, transcript/context persistence, current-workspace session listing, `/resume` selection, different-workspace blocking, restored transcript display, and continuation in the selected session. |
 | GitHub release assets | `.github/workflows/release.yml` and release-script checks verify matrix artifact generation, checksums, and GitHub Release upload without npm/Homebrew/winget publishing. |
 
 ---
 
 ## System-Wide Impact
-- [ ] **Interaction graph:** The new surface is a nested TypeScript package plus one Rust binary JSON-RPC backend mode, a Rust-owned SQLite session store, and a standalone executable packaging the runtime artifacts together; no providers, tools, full session protocol, session replay, or VFS are involved.
+- [ ] **Interaction graph:** The new surface is a nested TypeScript package plus one Rust binary JSON-RPC backend mode and a standalone executable packaging the runtime artifacts together; no providers, tools, session persistence, full session protocol, session replay, or VFS are involved.
 - [ ] **Error propagation:** Rust JSON-RPC errors, malformed responses, backend-process failures, and request timeouts should become visible TUI errors, not swallowed output or silent no-ops.
-- [ ] **State lifecycle risks:** Session metadata, transcript entries, and first-slice context persist in SQLite; full trace/replay state remains out of scope and dist output remains generated for this slice.
+- [ ] **State lifecycle risks:** This slice keeps transcript and queue state in memory only; durable session persistence, full trace/replay state, and provider state remain out of scope, and dist output remains generated for this slice.
 - [ ] **API surface parity:** The backend mode is an internal integration proof, not a public CLI contract. Headless agent functionality remains unchanged.
 - [ ] **Integration coverage:** Cross-layer coverage is required for the process backend client and the App submit flow because component tests alone cannot prove Rust/Ink wiring.
-- [ ] **Unchanged invariants:** Slash/status hints remain inert except for `/resume`, model label remains static, and KQode still does not run a model/provider/tool from the TUI.
+- [ ] **Unchanged invariants:** Slash/status hints remain inert, model label remains static, and KQode still does not run a model/provider/tool from the TUI.
 
 ---
 
@@ -1147,15 +997,13 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 |------|------------|
 | The TUI package accidentally becomes the owner of agent/session behavior. | Keep components prop-driven and restrict backend logic to the backend client seam. |
 | The hidden JSON-RPC backend argument is mistaken for a stable public CLI API. | Document it as an internal first-slice bridge and route future behavior through the planned session protocol. |
-| The local session + ACK contract grows into a premature full agent session protocol. | Support only start/list/resume/message-submit requests in this slice and defer streaming deltas, tool events, assistant messages, checkpoints, replay, and provider state. |
+| The local ACK contract grows into a premature full agent session protocol. | Support only the message-submit request in this slice and defer streaming deltas, tool events, assistant messages, checkpoints, replay, and provider state. |
 | Running from `tui/` shows the package directory instead of the user's workspace. | Capture and pass the original workspace cwd explicitly in the TUI entrypoint/backend client. |
 | Long prompts or narrow terminals push the status bar off screen. | Cap composer height and prioritize cwd/composer/status visibility in layout tests. |
 | Backend failures hang the TUI or look successful. | Add timeout, non-zero-exit handling, immediate red backend-crashed output, paused queued prompts, and new-submit-only respawn behavior. |
 | Source/packaged launch paths diverge. | Route both through the same backend process launcher abstraction and test both modes against the same guard contract. |
 | Backend launch becomes arbitrary command execution. | Fail closed: support only the internal Cargo launch and bundled backend binary; defer user-provided backend paths and shell commands. |
-| The child backend accidentally turns into daemon mode. | Keep the backend TUI-owned, stdio-only, socket-free, and short-lived; terminate it on TUI exit. Crash recovery is respawn plus SQLite restoration, not background continuation. |
-| SQLite becomes the only long-term replay truth. | Keep this as first-slice resume persistence and preserve schema room for the later append-only JSONL trace/replay architecture. |
-| `/resume` switches the user's workspace unexpectedly. | Scope lists to the current canonical absolute `workspaceCwd` only; realpath/case-normalize where possible, return a typed error for any direct resume request targeting another workspace, and never change cwd. |
+| The child backend accidentally turns into daemon mode. | Keep the backend TUI-owned, stdio-only, socket-free, and short-lived; terminate it on TUI exit. Crash recovery is respawn on the next submit, not background continuation. |
 | Dependency versions shift before implementation. | Resolve current compatible versions during implementation and keep the lockfile committed. |
 | Distribution staging accidentally becomes full release infrastructure. | Generate GitHub Release-ready archives/checksums and a registration guide, but defer registry publishing, tap submission, winget submission, signing/notarization, auto-update, and daemon installation. |
 | Release workflow accidentally publishes package registries. | Limit the workflow to GitHub Release asset creation; keep npm publish, Homebrew tap submission, and winget submission as manual documented steps. |
@@ -1169,12 +1017,11 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 - [ ] Update `README.md` with the minimal TUI run path and clarify that this first TUI only ACKs submitted text.
 - [ ] Document both source-mode and standalone-executable terminal testing paths.
 - [ ] Document Cargo-facing xtask commands for contributor workflows, including fixture preparation, TUI build/test orchestration, and release packaging; Bun/package-local scripts remain package-internal implementation details.
-- [ ] Document `/resume` as the only active slash command in this slice and clarify that it restores the local ACK transcript/context, not a real model conversation.
 - [ ] Document the intended install channels as artifact consumers: direct download, `npm install -g`, Homebrew, and winget.
 - [ ] Add `docs/release/kqode_distribution_registration.md` as the maintainer guide for registering/publishing generated artifacts after the echo executable is working.
 - [ ] Document the GitHub Release workflow trigger, expected release assets, and the relationship between uploaded asset URLs and downstream npm/Homebrew/winget registration.
 - [ ] Clarify that Cargo is required only for source-mode development, not for packaged-user execution.
-- [ ] Do not document slash commands other than `/resume`, model selection, or real agent behavior as available from this TUI slice.
+- [ ] Do not document slash commands, model selection, or real agent behavior as available from this TUI slice.
 - [ ] Keep any backend ACK wording framed as a development/demo seam, not as the final session protocol.
 
 ---
@@ -1185,7 +1032,6 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 - [ ] Build path: [docs/kqode_build_path.md](../kqode_build_path.md)
 - [ ] Adjacent context plan: [docs/plans/2026-06-25-002-feat-context-intent-retrieval-planning-plan.md](2026-06-25-002-feat-context-intent-retrieval-planning-plan.md)
 - [ ] Reference spawn architecture research: [docs/research/2026-06-25-tui-backend-spawn-architecture.md](../research/2026-06-25-tui-backend-spawn-architecture.md)
-- [ ] Reference session/resume research: [docs/research/2026-06-26-session-resume-storage-patterns.md](../research/2026-06-26-session-resume-storage-patterns.md)
 - [ ] Ink documentation: [github.com/vadimdemedes/ink](https://github.com/vadimdemedes/ink)
 - [ ] Ink testing utilities: [github.com/vadimdemedes/ink-testing-library](https://github.com/vadimdemedes/ink-testing-library)
 - [ ] Node child processes: [nodejs.org/api/child_process.html](https://nodejs.org/api/child_process.html)
