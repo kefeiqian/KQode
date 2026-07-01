@@ -5,7 +5,7 @@ import type { BackendClientHandle } from '@backend/client/backendClient.ts';
 import { startBackendRuntime } from '@backend/runtime/backendRuntime.ts';
 import { resolveRepoRoot, resolveWorkspaceCwd } from '@libs/path/runtimePaths.ts';
 import { PRODUCT_NAME, resolveProductVersion } from '@libs/product/productMetadata.ts';
-import { setTerminalWindowTitle } from '@libs/terminal/windowTitle.ts';
+import { setTerminalWindowTitle, resetTerminalWindowTitle } from '@libs/terminal/windowTitle.ts';
 import {
   resetTerminalBackground,
   setTerminalBackground
@@ -107,12 +107,14 @@ export async function createAppRuntime({
   const disposeBackend = startBackendRuntime(store, client);
 
   // Restore the user's terminal on clean shutdown and on hard exit (Ctrl+C /
-  // crash) so neither the OSC 11 background override nor the alternate screen
-  // buffer outlives the session. The `exit` listener is the safety net;
-  // `dispose` removes it on the clean path to avoid a redundant restore. Mirror
-  // the enter order on teardown: reset the background, then leave the alt buffer.
+  // crash) so neither the OSC 2 window title, the OSC 11 background override,
+  // nor the alternate screen buffer outlives the session. The `exit` listener
+  // is the safety net; `dispose` removes it on the clean path to avoid a
+  // redundant restore. Mirror the enter order on teardown: reset the background
+  // and window title, then leave the alt buffer.
   const restoreTerminal = () => {
     resetTerminalBackground();
+    resetTerminalWindowTitle();
     leaveAlternateScreen();
   };
   process.once('exit', restoreTerminal);

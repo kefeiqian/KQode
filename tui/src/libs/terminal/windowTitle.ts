@@ -29,3 +29,20 @@ export function setTerminalWindowTitle(
 
   stream.write(buildWindowTitleSequence(formatWindowTitle(productName, productVersion)));
 }
+
+/**
+ * Clears the terminal window title previously set by
+ * {@link setTerminalWindowTitle}, restoring the terminal's default.
+ *
+ * Writes an OSC 2 sequence with an empty title to `stream` when it is a TTY;
+ * non-TTY streams (pipes, captured test output) are left untouched. Called on
+ * exit so a KQode session title never outlives the process, mirroring the
+ * alternate-screen and background restores.
+ */
+export function resetTerminalWindowTitle(stream: NodeJS.WriteStream = process.stdout): void {
+  if (!stream.isTTY) {
+    return;
+  }
+
+  stream.write(buildWindowTitleSequence(''));
+}
