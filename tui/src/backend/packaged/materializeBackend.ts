@@ -139,24 +139,47 @@ export type MaterializeBackendOptions = {
   platform?: NodeJS.Platform;
 };
 
+/** Injectable seams for deterministic tests of the concurrent-write path. */
+export type MaterializeBackendDeps = {
+  writeBinary?: typeof writeBinary;
+};
+
 /**
  * Materializes the embedded backend into the per-user cache and returns its path.
  *
- * Reuses an already-materialized binary whose SHA-256 matches; otherwise writes
- * the embedded bytes with create-new + atomic-replace semantics and user-only
- * permissions. The asset bytes are integrity-checked against the embedded digest
- * before being written, and the on-disk result is re-verified before the path is
- * returned, so a corrupt asset or a tampered cache fails closed.
+ * The cache is content-addressed (`backends/<version>/<sha256>/`): an
+ * already-materialized binary whose SHA-256 matches is reused as-is; otherwise
+ * the embedded bytes are written with create-new + atomic-replace semantics and
+ * user-only permissions. The asset bytes are integrity-checked against the
+ * embedded digest before being written, and the on-disk result is re-verified
+ * before the path is returned, so a corrupt asset or a tampered cache fails
+ * closed.
+ *
+ * Concurrency: because the path is keyed by content, a different backend build
+ * never targets the same file as a running one. For the narrow case of two
+ * instances of the *same* build racing a first-ever write (where the loser's
+ * write can fail against the winner's freshly created — and, on Windows, locked
+ * — file), the loser falls back to the winner's now-valid binary instead of
+ * failing.
  *
  * # Errors
  *
  * Throws a `launch`-kind {@link BackendClientError} when the cache path is a
  * symlink/irregular file, the asset fails its integrity check, or filesystem
- * operations fail.
+ * operations fail without a valid binary being present.
  */
-export async function materializePackagedBackend(options: MaterializeBackendOptions): Promise<string> {
+export async function materializePackagedBackend(
+  options: MaterializeBackendOptions,
+  deps: MaterializeBackendDeps = {}
+): Promise<string> {
   const { asset, version, cacheBaseDir, platform = process.platform } = options;
-  const { runtimeDir, binaryPath } = resolvePackagedBackendPaths({ version, cacheBaseDir, platform });
+  const write = deps.writeBinary ?? writeBinary;
+  const { runtimeDir, binaryPath } = resolvePackagedBackendPaths({
+    version,
+    sha256: asset.sha256,
+    cacheBaseDir,
+    platform
+  });
 
   if (inspectExisting(binaryPath, asset.sha256, platform) === 'reusable') {
     return binaryPath;
@@ -171,7 +194,17 @@ export async function materializePackagedBackend(options: MaterializeBackendOpti
   }
 
   ensureRuntimeDir(runtimeDir, platform);
-  writeBinary(binaryPath, runtimeDir, bytes, platform);
+  try {
+    write(binaryPath, runtimeDir, bytes, platform);
+  } catch (error) {
+    // A concurrent instance of the same build may have materialized (and, on
+    // Windows, locked) the identical binary between our inspect and our write.
+    // Defer to it when the cache is now valid instead of failing the launch.
+    if (inspectExisting(binaryPath, asset.sha256, platform) === 'reusable') {
+      return binaryPath;
+    }
+    throw error;
+  }
 
   if (sha256Hex(fs.readFileSync(binaryPath)) !== asset.sha256) {
     throw materializationError('post-write integrity check failed');

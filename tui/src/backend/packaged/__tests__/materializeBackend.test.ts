@@ -46,7 +46,7 @@ afterEach(() => {
 });
 
 describe('materializePackagedBackend', () => {
-  it('writes the embedded binary into the versioned per-user cache', async () => {
+  it('writes the embedded binary into the content-addressed per-user cache', async () => {
     const cacheBaseDir = tempBase();
     const bytes = Buffer.from('fake backend v1');
     const binaryPath = await materializePackagedBackend({
@@ -55,7 +55,11 @@ describe('materializePackagedBackend', () => {
       cacheBaseDir
     });
 
-    const expected = resolvePackagedBackendPaths({ version: '0.1.0', cacheBaseDir }).binaryPath;
+    const expected = resolvePackagedBackendPaths({
+      version: '0.1.0',
+      sha256: sha256(bytes),
+      cacheBaseDir
+    }).binaryPath;
     expect(binaryPath).toBe(expected);
     expect(fs.readFileSync(binaryPath)).toEqual(bytes);
     expect(path.basename(binaryPath)).toBe(packagedBackendBinaryName());
@@ -66,6 +70,20 @@ describe('materializePackagedBackend', () => {
     const a = await materializePackagedBackend({ asset: asset(Buffer.from('v1')), version: '1.0.0', cacheBaseDir });
     const b = await materializePackagedBackend({ asset: asset(Buffer.from('v2')), version: '2.0.0', cacheBaseDir });
     expect(path.dirname(a)).not.toBe(path.dirname(b));
+  });
+
+  it('isolates different backend contents at the same version by hash', async () => {
+    const cacheBaseDir = tempBase();
+    const oldBytes = Buffer.from('backend build A');
+    const newBytes = Buffer.from('backend build B');
+    const a = await materializePackagedBackend({ asset: asset(oldBytes), version: '0.1.0', cacheBaseDir });
+    const b = await materializePackagedBackend({ asset: asset(newBytes), version: '0.1.0', cacheBaseDir });
+
+    // Same version, different content -> distinct content-addressed dirs that
+    // coexist, so a rebuilt backend never overwrites a still-present old one.
+    expect(path.dirname(a)).not.toBe(path.dirname(b));
+    expect(fs.readFileSync(a)).toEqual(oldBytes);
+    expect(fs.readFileSync(b)).toEqual(newBytes);
   });
 
   it('reuses an already-materialized binary without re-reading the asset', async () => {
@@ -99,7 +117,11 @@ describe('materializePackagedBackend', () => {
       materializePackagedBackend({ asset: corrupt, version: '0.1.0', cacheBaseDir })
     ).rejects.toMatchObject({ kind: BackendErrorKind.Launch });
 
-    const binaryPath = resolvePackagedBackendPaths({ version: '0.1.0', cacheBaseDir }).binaryPath;
+    const binaryPath = resolvePackagedBackendPaths({
+      version: '0.1.0',
+      sha256: 'f'.repeat(64),
+      cacheBaseDir
+    }).binaryPath;
     expect(fs.existsSync(binaryPath)).toBe(false);
   });
 
@@ -116,7 +138,11 @@ describe('materializePackagedBackend', () => {
 
   it.skipIf(isWindows)('refuses to follow a symlink planted at the cache path', async () => {
     const cacheBaseDir = tempBase();
-    const { runtimeDir, binaryPath } = resolvePackagedBackendPaths({ version: '0.1.0', cacheBaseDir });
+    const { runtimeDir, binaryPath } = resolvePackagedBackendPaths({
+      version: '0.1.0',
+      sha256: sha256(Buffer.from('real')),
+      cacheBaseDir
+    });
     fs.mkdirSync(runtimeDir, { recursive: true });
     const decoy = path.join(cacheBaseDir, 'decoy-target');
     fs.writeFileSync(decoy, Buffer.from('attacker controlled'));
@@ -131,9 +157,52 @@ describe('materializePackagedBackend', () => {
 
   it('leaves no temp staging files behind after a successful materialization', async () => {
     const cacheBaseDir = tempBase();
-    const { runtimeDir } = resolvePackagedBackendPaths({ version: '0.1.0', cacheBaseDir });
+    const { runtimeDir } = resolvePackagedBackendPaths({
+      version: '0.1.0',
+      sha256: sha256(Buffer.from('clean')),
+      cacheBaseDir
+    });
     await materializePackagedBackend({ asset: asset(Buffer.from('clean')), version: '0.1.0', cacheBaseDir });
     const leftovers = fs.readdirSync(runtimeDir).filter((name) => name.endsWith('.tmp'));
     expect(leftovers).toEqual([]);
+  });
+
+  it('reuses a binary a concurrent instance materialized when its own write loses the race', async () => {
+    const cacheBaseDir = tempBase();
+    const bytes = Buffer.from('raced backend');
+    // Simulate the winner writing the valid binary, then our own write failing
+    // (e.g. the winner already spawned and locked it on Windows).
+    const losingWrite = (binaryPath: string, runtimeDir: string): void => {
+      fs.mkdirSync(runtimeDir, { recursive: true });
+      fs.writeFileSync(binaryPath, bytes);
+      throw new Error('EBUSY: binary is locked by the winning instance');
+    };
+
+    const result = await materializePackagedBackend(
+      { asset: asset(bytes), version: '0.1.0', cacheBaseDir },
+      { writeBinary: losingWrite }
+    );
+
+    const expected = resolvePackagedBackendPaths({
+      version: '0.1.0',
+      sha256: sha256(bytes),
+      cacheBaseDir
+    }).binaryPath;
+    expect(result).toBe(expected);
+    expect(fs.readFileSync(result)).toEqual(bytes);
+  });
+
+  it('propagates a write failure when no valid binary ends up present', async () => {
+    const cacheBaseDir = tempBase();
+    const failingWrite = (): void => {
+      throw new Error('ENOSPC: no space left on device');
+    };
+
+    await expect(
+      materializePackagedBackend(
+        { asset: asset(Buffer.from('unwritable')), version: '0.1.0', cacheBaseDir },
+        { writeBinary: failingWrite }
+      )
+    ).rejects.toThrow('ENOSPC');
   });
 });
