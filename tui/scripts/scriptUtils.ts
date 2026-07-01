@@ -1,7 +1,7 @@
 import { resolveProductVersion } from '../src/libs/product/productMetadata.ts';
 
 /**
- * Shared helpers for the packaging scripts (`buildPackaged.ts`, `stageNpm.ts`).
+ * Shared helpers for the packaging scripts (`buildPackaged.ts`, `packageRelease.ts`).
  *
  * These Bun entry points live outside the typechecked `src/` graph, so they use
  * relative imports and centralize host-platform concerns (exe suffix, argument

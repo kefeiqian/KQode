@@ -1,49 +1,42 @@
 # npm distribution
 
-This directory holds the npm distribution scaffold for the `kqode` CLI. It does
-not publish anything; it defines the package shape and a local staging step.
+This directory holds the npm distribution for the `kqode` CLI: a single package,
+`@kqode/kqode-cli`, published under the `@kqode` org.
 
 ## Layout
 
 ```text
 packaging/npm/
-  kqode/                     # the published root package (committed)
-    package.json             #   name "kqode", bin selector, per-platform optionalDependencies
-    bin/kqode.cjs            #   selector: resolve the platform package, exec its binary
-    lib/resolve.cjs          #   pure platform → package-name mapping
+  kqode/                     # the published package @kqode/kqode-cli (committed)
+    package.json             #   name, bin, postinstall
+    bin/kqode.cjs            #   launcher: ensure the binary, then exec it
+    lib/resolve.cjs          #   pure host → release-asset mapping
+    lib/install.cjs          #   download + SHA-256 verify + extract the binary
     test/resolve.test.cjs    #   node:test for the mapping (run with `node --test`)
-  dist/                      # generated, git-ignored staging output (see below)
 ```
 
 ## Design
 
-The root `kqode` package contains no binary. Each supported target has its own
-`@kqode/cli-<platform>-<arch>` package that ships one self-contained executable
-(the Rust backend is embedded inside it by `bun build --compile`; see
-`tui/scripts/buildPackaged.ts`). Those platform packages are listed as
-`optionalDependencies` and carry `os`/`cpu` fields, so npm installs only the one
-matching the host. The selector then `exec`s that binary.
+The package ships **no** binary. On install (postinstall) and, as a fallback, on
+first run, `lib/install.cjs` downloads the matching `kqode-<os>-<arch>` archive
+for the host from the GitHub Release for the package's version
+(`kefeiqian/kqode-cli`), verifies its SHA-256 against the published checksum,
+extracts the self-contained executable into a local `vendor/` directory, and the
+`bin/kqode.cjs` launcher execs it — forwarding arguments, stdio, and the exit
+code.
 
-This mirrors the proven native-binary distribution pattern used by tools such as
-esbuild and swc: no build on the user's machine, no postinstall, and an
-unsupported platform is skipped rather than fatal.
+This "thin launcher" pattern keeps npm to one package (no per-target packages)
+while still delivering a platform-specific, self-contained executable that needs
+neither a Node runtime nor a Rust toolchain at execution time.
 
-## Staging the host platform package
+Tradeoff: install/first-run needs network access to GitHub Releases, and
+`npm install --ignore-scripts` skips the postinstall (the first `kqode` run then
+performs the download instead). The alternative `os`/`cpu` optional-dependency
+layout avoids that but requires one npm package per target.
 
-After building the executable (`cargo xtask package`), assemble the
-publish-ready layout for the current host into `dist/`:
+## Publishing
 
-```bash
-cd tui
-bun run stage:npm
-```
-
-This writes `dist/kqode/` (the root package with versions stamped) and
-`dist/@kqode/cli-<host>/` (the platform package containing the executable). The
-other five platform packages are produced on their respective CI runners.
-
-## Deferred
-
-The cross-platform build matrix, release archives/checksums, the GitHub Release
-pipeline, and the Homebrew/winget registration guide are intentionally out of
-scope here and tracked as later release work.
+Publishing is automated by `.github/workflows/npm-publish.yml` via npm Trusted
+Publishing (OIDC). See `docs/release/kqode_distribution_registration.md` for the
+one-time org/trusted-publisher setup and the manual bootstrap for the first
+publish.

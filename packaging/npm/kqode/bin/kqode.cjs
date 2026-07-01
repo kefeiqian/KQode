@@ -1,58 +1,39 @@
 #!/usr/bin/env node
 'use strict';
 
-const path = require('node:path');
-const { spawnSync } = require('node:child_process');
-const { platformPackageName, binaryName, isSupported } = require('../lib/resolve.cjs');
+const { spawn } = require('node:child_process');
+const { ensureBinary } = require('../lib/install.cjs');
+const { REPO } = require('../lib/resolve.cjs');
 
 /**
- * Resolves the absolute path to the prebuilt executable for the host platform.
- *
- * The matching `@kqode/cli-<platform>-<arch>` package is installed by npm as an
- * optional dependency (filtered by its `os`/`cpu` fields), so resolution is a
- * plain module lookup — no build, no network. Throws a clear, actionable error
- * when the host is unsupported or its platform package was not installed.
+ * Launches the platform-specific `kqode` executable, downloading and verifying
+ * it on first run if the postinstall step did not (for example after
+ * `npm install --ignore-scripts`). Arguments, stdio, and the exit code/signal
+ * are forwarded to the executable.
  */
-function resolveBinary() {
-  const { platform, arch } = process;
-  if (!isSupported(platform, arch)) {
-    throw new Error(`kqode: no prebuilt executable is published for ${platform}-${arch}.`);
-  }
-
-  const pkg = platformPackageName(platform, arch);
-  let manifestPath;
-  try {
-    manifestPath = require.resolve(`${pkg}/package.json`);
-  } catch {
-    throw new Error(
-      `kqode: the platform package ${pkg} is not installed. ` +
-        'Reinstall kqode so npm can fetch the matching optional dependency ' +
-        '(ensure optional dependencies are not disabled).'
-    );
-  }
-
-  return path.join(path.dirname(manifestPath), binaryName(platform));
-}
-
-function main() {
+async function main() {
   let binary;
   try {
-    binary = resolveBinary();
+    binary = await ensureBinary();
   } catch (error) {
     console.error(error.message);
+    console.error(`kqode: unable to obtain the executable. Download it manually from`);
+    console.error(`  https://github.com/${REPO}/releases`);
     process.exit(1);
   }
 
-  const result = spawnSync(binary, process.argv.slice(2), { stdio: 'inherit' });
-  if (result.error) {
-    console.error(`kqode: failed to launch ${binary}: ${result.error.message}`);
+  const child = spawn(binary, process.argv.slice(2), { stdio: 'inherit' });
+  child.on('error', (error) => {
+    console.error(`kqode: failed to launch ${binary}: ${error.message}`);
     process.exit(1);
-  }
-  process.exit(result.status === null ? 1 : result.status);
+  });
+  child.on('exit', (code, signal) => {
+    if (signal) {
+      process.kill(process.pid, signal);
+    } else {
+      process.exit(code === null ? 1 : code);
+    }
+  });
 }
 
-if (require.main === module) {
-  main();
-}
-
-module.exports = { resolveBinary };
+main();
