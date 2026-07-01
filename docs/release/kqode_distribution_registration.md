@@ -111,30 +111,57 @@ optional dependency per platform. The root `bin` runs a small selector
 (`packaging/npm/kqode/bin/kqode.cjs` + `lib/resolve.cjs`) that locates the
 executable inside the installed platform package for the host
 `process.platform`/`process.arch`. The root `bin` never runs a JavaScript
-runtime copy of the TUI.
+runtime copy of the TUI. npm's `os`/`cpu` fields gate *installation*, not
+publishing, so all packages can be published from one machine.
 
-Stage the publish-ready layout for the host into `packaging/npm/dist/`:
+### What to register and set (one-time)
+
+1. An **npm account** (npmjs.com) that will own the packages.
+2. Create the **`@kqode` organization/scope** (npmjs.com → Add Organization →
+   `kqode`; the free plan covers public packages) so `@kqode/cli-*` can be
+   published, and own the unscoped **`kqode`** name (the first publish claims it).
+3. Generate an npm **Automation** access token (Access Tokens → Generate → an
+   Automation token bypasses 2FA in CI; or a Granular token with read/write to
+   the `@kqode` scope and the `kqode` package).
+4. Add it as the GitHub repo secret **`NPM_TOKEN`** (Settings → Secrets and
+   variables → Actions → New repository secret).
+5. For supply-chain **provenance**, keep the repo public — the workflow auto-adds
+   `--provenance` on public repos (it has `id-token: write`); on private repos it
+   is skipped.
+
+### Automated publishing (recommended)
+
+`.github/workflows/npm-publish.yml` downloads a Release's archives, assembles all
+packages, and publishes them (platform packages first, root last), skipping any
+version already on npm. Trigger it from **Actions → Publish npm → Run workflow**
+and enter the tag (e.g. `v0.1.0`).
+
+> A Release created by `release.yml`'s `GITHUB_TOKEN` does not re-trigger the
+> `release: published` event, so the manual dispatch above is the reliable path.
+
+### Assemble all packages locally (one machine)
+
+The assembler turns the six release archives into the full npm layout under
+`packaging/npm/dist/`, so you do not need to build on all six OSes:
 
 ```bash
-cd tui && bun run stage:npm
+# Point it at a directory holding the downloaded release archives:
+bun tui/scripts/stageNpmFromRelease.ts --from=<dir-of-archives> --out=packaging/npm/dist
+# Or, when the archives already sit in tui/dist/release/:
+cargo xtask package-npm
 ```
 
-Each CI runner stages its own `@kqode/cli-<target>` package (the platform
-executable lives inside it). To publish:
+`stage:npm` (`cd tui && bun run stage:npm`) stages only the **host** platform
+package from a freshly built `tui/dist/kqode` — handy for local testing.
 
-1. Publish every `@kqode/cli-<target>` package (each declares matching `os`/`cpu`
-   metadata so npm installs only the correct one):
+### Manual publishing
 
-   ```bash
-   cd packaging/npm/dist/@kqode/cli-<target> && npm publish --access public
-   ```
-
-2. Publish the root `kqode` package last, after all platform packages exist, so
-   its `optionalDependencies` resolve:
-
-   ```bash
-   cd packaging/npm/dist/kqode && npm publish --access public
-   ```
+```bash
+# Platform packages first (each declares matching os/cpu):
+cd packaging/npm/dist/@kqode/cli-<target> && npm publish --access public
+# Root last, so its optionalDependencies resolve:
+cd packaging/npm/dist/kqode && npm publish --access public
+```
 
 Users then install with `npm install -g kqode`.
 
