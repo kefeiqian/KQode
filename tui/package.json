@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "package": "bun scripts/buildPackaged.ts",
+    "package-release": "bun scripts/packageRelease.ts",
     "stage:npm": "bun scripts/stageNpm.ts"
   },
   "dependencies": {
