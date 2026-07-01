@@ -4,6 +4,7 @@ pub mod blog;
 pub mod fixture;
 pub mod help;
 pub mod package;
+pub mod package_npm;
 pub mod package_release;
 pub mod tui;
 
@@ -16,7 +17,11 @@ pub struct CommandSpec {
 }
 
 const HELP_COMMANDS: &[CommandSpec] = &[help::COMMAND];
-const PACKAGE_COMMANDS: &[CommandSpec] = &[package::COMMAND, package_release::COMMAND];
+const PACKAGE_COMMANDS: &[CommandSpec] = &[
+    package::COMMAND,
+    package_release::COMMAND,
+    package_npm::COMMAND,
+];
 const COMMAND_GROUPS: &[&[CommandSpec]] = &[
     fixture::COMMANDS,
     tui::COMMANDS,

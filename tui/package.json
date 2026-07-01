@@ -14,7 +14,8 @@
     "test": "vitest run",
     "package": "bun scripts/buildPackaged.ts",
     "package-release": "bun scripts/packageRelease.ts",
-    "stage:npm": "bun scripts/stageNpm.ts"
+    "stage:npm": "bun scripts/stageNpm.ts",
+    "stage:npm-release": "bun scripts/stageNpmFromRelease.ts"
   },
   "dependencies": {
     "ink": "^7.1.0",
