@@ -54,6 +54,16 @@ cargo xtask blog-serve-en
 cargo xtask blog-preview
 ```
 
+Running two or more `cargo xtask` commands at once fails on Windows: `cargo xtask` expands to `cargo run -p xtask`, which relinks the shared `target\debug\xtask.exe` on each call, and a long-running command keeps that executable locked so the next call cannot replace it (os error 32, or os error 5 on the remove step). To run long-lived or multiple commands in parallel, use the launcher, which builds once then runs a per-invocation copy under `target/debug/xtask-run/`:
+
+```powershell
+./scripts/xtask.ps1 blog-serve   # Windows (PowerShell)
+```
+
+```bash
+./scripts/xtask.sh blog-serve    # macOS/Linux
+```
+
 Keep xtask command modules as thin wrappers around reusable implementation modules. When adding or renaming an xtask command, add a matching checked-in IDE run profile under `.run/` using the `xtask: <command>` naming pattern.
 
 ## Architecture
