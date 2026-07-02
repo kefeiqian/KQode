@@ -46,12 +46,13 @@ test('releaseBaseUrl points at the versioned GitHub Release', () => {
   );
 });
 
-test('isSupported matches exactly the six published targets', () => {
-  assert.equal(SUPPORTED_TARGETS.length, 6);
+test('isSupported matches exactly the five published targets', () => {
+  assert.equal(SUPPORTED_TARGETS.length, 5);
   for (const target of SUPPORTED_TARGETS) {
     const [platform, arch] = target.split('-');
     assert.ok(isSupported(platform, arch), `${target} should be supported`);
   }
+  assert.ok(!isSupported('darwin', 'x64'));
   assert.ok(!isSupported('linux', 'ia32'));
   assert.ok(!isSupported('sunos', 'x64'));
 });

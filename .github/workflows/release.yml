@@ -44,7 +44,6 @@ jobs:
       matrix:
         include:
           - { target: kqode-darwin-arm64,  runner: macos-14,         archive: kqode-darwin-arm64.tar.gz,  required: true }
-          - { target: kqode-darwin-x64,    runner: macos-13,         archive: kqode-darwin-x64.tar.gz,    required: true }
           - { target: kqode-linux-x64,     runner: ubuntu-22.04,     archive: kqode-linux-x64.tar.gz,     required: true }
           - { target: kqode-linux-arm64,   runner: ubuntu-22.04-arm, archive: kqode-linux-arm64.tar.gz,   required: true }
           - { target: kqode-windows-x64,   runner: windows-2022,     archive: kqode-windows-x64.zip,      required: true }
@@ -89,7 +88,7 @@ jobs:
       id-token: write # build-provenance attestation
       attestations: write # build-provenance attestation
     env:
-      REQUIRED_TARGETS: "kqode-darwin-arm64 kqode-darwin-x64 kqode-linux-x64 kqode-linux-arm64 kqode-windows-x64"
+      REQUIRED_TARGETS: "kqode-darwin-arm64 kqode-linux-x64 kqode-linux-arm64 kqode-windows-x64"
       OPTIONAL_TARGETS: "kqode-windows-arm64"
     steps:
       - uses: actions/download-artifact@v4

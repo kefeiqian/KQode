@@ -48,7 +48,6 @@ all archives plus `checksums.txt` to the GitHub Release.
 | Release target        | Archive                     |
 | --------------------- | --------------------------- |
 | `kqode-darwin-arm64`  | `kqode-darwin-arm64.tar.gz` |
-| `kqode-darwin-x64`    | `kqode-darwin-x64.tar.gz`   |
 | `kqode-linux-arm64`   | `kqode-linux-arm64.tar.gz`  |
 | `kqode-linux-x64`     | `kqode-linux-x64.tar.gz`    |
 | `kqode-windows-arm64` | `kqode-windows-arm64.zip`   |
@@ -223,10 +222,7 @@ class Kqode < Formula
       url "https://github.com/kefeiqian/kqode-cli/releases/download/v0.1.0/kqode-darwin-arm64.tar.gz"
       sha256 "<sha256 from checksums.txt>"
     end
-    on_intel do
-      url "https://github.com/kefeiqian/kqode-cli/releases/download/v0.1.0/kqode-darwin-x64.tar.gz"
-      sha256 "<sha256 from checksums.txt>"
-    end
+    # Intel macOS (darwin-x64) is not distributed; only Apple Silicon is built.
   end
 
   def install
