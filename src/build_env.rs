@@ -1,15 +1,15 @@
-//! Build-time environment identity, mirroring the TUI's `KQODE_ENV` axis.
+//! Build-time environment identity, mirroring the TUI's `__DEV__` / `__TEST__` /
+//! `__PROD__` flags.
 //!
-//! `build.rs` reads the `KQODE_ENV` variable and exposes it to the compiler as
-//! the custom `kqode_env` cfg (`"dev"`, `"test"`, or `"prod"`). Gate
-//! environment-specific code with `#[cfg(kqode_env = "prod")]` for true
-//! conditional compilation, or read [`BuildEnv::current`] for a runtime value
-//! (for example, when logging the active environment).
+//! `build.rs` reads the `KQODE_ENV` variable and exposes the deploy target to the
+//! compiler as the `__DEV__` or `__PROD__` cfg; test-harness detection uses the
+//! built-in `cfg(test)`. Gate environment-specific code with `#[cfg(__PROD__)]` /
+//! `#[cfg(test)]` for true conditional compilation, or read [`BuildEnv::current`]
+//! for a runtime value (for example, when logging the active environment).
 //!
-//! Prefer the built-in `#[cfg(test)]` for unit-test-only code. `kqode_env =
-//! "test"` is for building the whole product in test mode (e.g. an eval
-//! harness) and is only set when `KQODE_ENV=test` is passed at build time — a
-//! plain `cargo test` defaults to `dev`.
+//! A plain `cargo build` is `__DEV__`; `cargo test` adds `cfg(test)` on top. A
+//! `KQODE_ENV=test` build still compiles as `__DEV__` — the "test" environment is
+//! the built-in `cfg(test)`, not a deploy target.
 
 /// Build variable that selects the environment. Kept in sync with `build.rs`.
 pub const ENV_VAR: &str = "KQODE_ENV";
@@ -26,18 +26,20 @@ pub enum BuildEnv {
 }
 
 impl BuildEnv {
-    /// The environment this crate was compiled for, resolved from the
-    /// `kqode_env` cfg.
+    /// The environment this crate was compiled for, resolved from the `cfg(test)`
+    /// / `__PROD__` / `__DEV__` cfgs.
     ///
-    /// Falls back to [`BuildEnv::Dev`] when the cfg is unset, e.g. tooling that
-    /// does not run `build.rs`.
+    /// `cfg(test)` takes priority (unit tests always compile with it); otherwise
+    /// `__PROD__` selects [`BuildEnv::Prod`] and everything else — including when
+    /// no cfg is set, e.g. tooling that does not run `build.rs` — is
+    /// [`BuildEnv::Dev`].
     #[must_use]
     pub const fn current() -> Self {
-        #[cfg(kqode_env = "prod")]
-        const CURRENT: BuildEnv = BuildEnv::Prod;
-        #[cfg(kqode_env = "test")]
+        #[cfg(test)]
         const CURRENT: BuildEnv = BuildEnv::Test;
-        #[cfg(not(any(kqode_env = "prod", kqode_env = "test")))]
+        #[cfg(all(not(test), __PROD__))]
+        const CURRENT: BuildEnv = BuildEnv::Prod;
+        #[cfg(all(not(test), not(__PROD__)))]
         const CURRENT: BuildEnv = BuildEnv::Dev;
 
         CURRENT
@@ -59,15 +61,10 @@ mod tests {
     use super::BuildEnv;
 
     #[test]
-    fn current_agrees_with_the_active_cfg() {
-        let env = BuildEnv::current();
-        if cfg!(kqode_env = "prod") {
-            assert_eq!(env, BuildEnv::Prod);
-        } else if cfg!(kqode_env = "test") {
-            assert_eq!(env, BuildEnv::Test);
-        } else {
-            assert_eq!(env, BuildEnv::Dev);
-        }
+    fn current_is_test_under_cargo_test() {
+        // Unit tests always compile with the built-in `cfg(test)`, which takes
+        // priority in `current()`.
+        assert_eq!(BuildEnv::current(), BuildEnv::Test);
     }
 
     #[test]

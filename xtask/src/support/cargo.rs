@@ -1,7 +1,7 @@
 use std::{path::Path, process::Command};
 
 /// Build variable and value that compile the packaged backend under the
-/// `kqode_env = "prod"` cfg. Mirrors `KQODE_ENV` in the TUI packaging define.
+/// `__PROD__` cfg. Mirrors `KQODE_ENV` in the TUI packaging define.
 const BUILD_ENV_VAR: &str = "KQODE_ENV";
 const PROD_ENV: &str = "prod";
 
@@ -10,8 +10,8 @@ const PROD_ENV: &str = "prod";
 /// Used by the packaging command to produce the backend that gets embedded into
 /// the standalone executable. The build runs from the trusted `repo_root` so the
 /// manifest and `.cargo` config come from the repository, not a workspace, and
-/// sets `KQODE_ENV=prod` so the backend compiles under the `kqode_env = "prod"`
-/// cfg — matching the packaged TUI's prod build.
+/// sets `KQODE_ENV=prod` so the backend compiles under the `__PROD__` cfg —
+/// matching the packaged TUI's prod build.
 ///
 /// # Errors
 ///
