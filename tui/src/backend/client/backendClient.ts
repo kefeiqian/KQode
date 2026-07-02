@@ -1,7 +1,7 @@
 import { type MessageConnection } from 'vscode-jsonrpc';
 import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
 import type { BackendClient } from '@contracts/backend/index.ts';
-import { DEFAULT_REQUEST_TIMEOUT_MS, DEFAULT_STARTUP_TIMEOUT_MS } from '@backend/backendConstants.ts';
+import { DEFAULT_REQUEST_TIMEOUT_MS, DEFAULT_STARTUP_TIMEOUT_MS } from '@constants/backend.ts';
 import type { LaunchedBackend } from '@backend/process/backendProcess.ts';
 import { createMessageConnectionClient } from '@backend/client/messageConnectionClient.ts';
 import { openReadyConnection } from '@backend/client/backendReadiness.ts';

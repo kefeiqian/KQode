@@ -1,4 +1,4 @@
-import { PRODUCT_NAME } from '@libs/product/productMetadata.ts';
+import { PRODUCT_NAME } from '@constants/product.ts';
 
 const BANNER_HEIGHT = 5;
 const CELL_WIDTH = 5;

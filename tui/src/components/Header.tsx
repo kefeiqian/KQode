@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink';
 import { useAtomValue } from 'jotai';
-import { COMPACT_HEADER_BELOW_COLUMNS, HIDE_HEADER_BELOW_COLUMNS } from '@libs/tui/layout.ts';
-import { PRODUCT_NAME } from '@libs/product/productMetadata.ts';
+import { COMPACT_HEADER_BELOW_COLUMNS, HIDE_HEADER_BELOW_COLUMNS } from '@constants/ui.ts';
+import { PRODUCT_NAME } from '@constants/product.ts';
 import { columnsAtom, productVersionAtom } from '@state/global/index.ts';
 import { theme } from '@theme/themeConfig.ts';
 

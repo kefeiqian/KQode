@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bannerLines } from '@libs/exitSummary/banner.ts';
+import { bannerLines } from '@components/exitSummary/banner.ts';
 
 describe('bannerLines', () => {
   it('renders a fixed 5-row block banner for the KQode wordmark', () => {

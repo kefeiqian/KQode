@@ -2,11 +2,11 @@ import { createStore } from 'jotai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const printExitSummary = vi.fn();
-vi.mock('@libs/exitSummary/printExitSummary.ts', () => ({
+vi.mock('@components/exitSummary/printExitSummary.ts', () => ({
   printExitSummary: (deps: unknown) => printExitSummary(deps)
 }));
 
-const { finishSession } = await import('@libs/exitSummary/finishSession.ts');
+const { finishSession } = await import('@components/exitSummary/finishSession.ts');
 
 afterEach(() => {
   vi.clearAllMocks();

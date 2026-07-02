@@ -1,8 +1,9 @@
+import '@/devGlobals.ts';
 import { render } from 'ink';
 import { Provider } from 'jotai';
 import { App } from '@/App.tsx';
 import { createAppRuntime } from '@/bootstrap.ts';
-import { finishSession } from '@libs/exitSummary/finishSession.ts';
+import { finishSession } from '@components/exitSummary/finishSession.ts';
 
 const { store, dispose } = await createAppRuntime({ entryUrl: import.meta.url });
 

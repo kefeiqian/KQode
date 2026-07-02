@@ -16,6 +16,7 @@
       "@/*": ["./src/*"],
       "@backend/*": ["./src/backend/*"],
       "@components/*": ["./src/components/*"],
+      "@constants/*": ["./src/constants/*"],
       "@contracts/*": ["./src/contracts/*"],
       "@libs/*": ["./src/libs/*"],
       "@state/*": ["./src/state/*"],

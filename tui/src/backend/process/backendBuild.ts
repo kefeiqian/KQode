@@ -6,7 +6,7 @@ import {
   CARGO_BINARY_NAME,
   CARGO_COMMAND,
   DEFAULT_BUILD_TIMEOUT_MS
-} from '@backend/backendConstants.ts';
+} from '@constants/backend.ts';
 import { buildHardenedEnv } from '@backend/process/processEnv.ts';
 import { CappedBuffer, killProcessTree } from '@backend/process/processUtils.ts';
 

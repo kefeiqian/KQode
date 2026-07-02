@@ -1,3 +1,5 @@
+import { maxWidth } from '@libs/text/maxWidth.ts';
+
 const ROUNDED = {
   topLeft: '╭',
   topRight: '╮',
@@ -26,7 +28,7 @@ export type BoxOptions = {
 export function boxed(lines: readonly string[], options: BoxOptions = {}): string[] {
   const padding = options.padding ?? 2;
   const measure = options.width ?? ((line) => line.length);
-  const inner = lines.reduce((max, line) => Math.max(max, measure(line)), 0);
+  const inner = maxWidth(lines, measure);
   const pad = ' '.repeat(padding);
   const horizontal = ROUNDED.horizontal.repeat(inner + padding * 2);
 

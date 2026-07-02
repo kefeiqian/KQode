@@ -4,7 +4,8 @@ import { createStore } from 'jotai';
 import type { BackendClientHandle } from '@backend/client/backendClient.ts';
 import { startBackendRuntime } from '@backend/runtime/backendRuntime.ts';
 import { resolveRepoRoot, resolveWorkspaceCwd } from '@libs/path/runtimePaths.ts';
-import { PRODUCT_NAME, resolveProductVersion } from '@libs/product/productMetadata.ts';
+import { PRODUCT_NAME } from '@constants/product.ts';
+import { resolveProductVersion } from '@libs/product/productMetadata.ts';
 import { setTerminalWindowTitle, resetTerminalWindowTitle } from '@libs/terminal/windowTitle.ts';
 import {
   resetTerminalBackground,
@@ -14,7 +15,7 @@ import {
   enterAlternateScreen,
   leaveAlternateScreen
 } from '@libs/terminal/alternateScreen.ts';
-import { resolveSessionSeed } from '@libs/exitSummary/resolveSessionSeed.ts';
+import { resolveSessionSeed } from '@components/exitSummary/resolveSessionSeed.ts';
 import {
   productVersionAtom,
   repoRootAtom,
@@ -49,12 +50,12 @@ export type CreateAppRuntimeOptions = {
 /**
  * Composes the TUI store and the environment-appropriate backend client.
  *
- * The `process.env.KQODE_ENV === 'prod'` check is intentionally a string literal
- * (matching `PROD_ENV`): Bun `--define` inlines it at build time so the unused
- * launch strategy is dead-code-eliminated — the Cargo source-launch code is
- * dropped from the packaged executable, and the packaged client is never
- * resolved outside `prod`. Each strategy is therefore loaded with a dynamic
- * `import()` inside its own branch; `dev` and `test` both take the source path.
+ * The `__PROD__` check is a build-time boolean (injected by Bun `--define` in the
+ * packaged build, and by vitest / the dev shim otherwise): `if (__PROD__)` folds
+ * at build time so the unused launch strategy is dead-code-eliminated — the Cargo
+ * source-launch code is dropped from the packaged executable, and the packaged
+ * client is never resolved outside `prod`. Each strategy is loaded with a dynamic
+ * `import()` in its own branch; `dev` and `test` take the source path.
  *
  * `entryUrl` is the source-mode anchor used to locate the repo root for Cargo
  * and product metadata; it is ignored in the packaged (`prod`) build.
@@ -76,7 +77,7 @@ export async function createAppRuntime({
 
   let client: BackendClientHandle;
   let productVersion: string;
-  if (process.env.KQODE_ENV === 'prod') {
+  if (__PROD__) {
     if (loadPackagedAsset === undefined) {
       throw new Error('packaged runtime requires an embedded backend asset loader');
     }

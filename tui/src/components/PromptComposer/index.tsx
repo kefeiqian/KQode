@@ -3,7 +3,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import type { DOMElement } from 'ink';
 import { useEffect, useRef } from 'react';
 import { ComposerFrame } from '@components/PromptComposer/ComposerFrame.tsx';
-import { PROMPT_PREFIX } from '@components/PromptComposer/constants.ts';
+import { PROMPT_PREFIX } from '@constants/ui.ts';
 import { resolveComposerCursorPosition } from '@components/PromptComposer/cursorPosition.ts';
 import {
   countVisibleComposerRows,
@@ -11,7 +11,7 @@ import {
   formatVisiblePromptView
 } from '@components/PromptComposer/promptTextView.ts';
 import { usePromptComposerInput } from '@components/PromptComposer/usePromptComposerInput.ts';
-import { DEFAULT_COMPOSER_VISIBLE_LINES } from '@libs/tui/layout.ts';
+import { DEFAULT_COMPOSER_VISIBLE_LINES } from '@constants/ui.ts';
 import { enqueuePromptAtom } from '@state/backend/index.ts';
 import {
   composerStateAtom,

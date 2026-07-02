@@ -2,7 +2,7 @@ import { render } from 'ink';
 import { Provider } from 'jotai';
 import { App } from '@/App.tsx';
 import { createAppRuntime } from '@/bootstrap.ts';
-import { finishSession } from '@libs/exitSummary/finishSession.ts';
+import { finishSession } from '@components/exitSummary/finishSession.ts';
 import { loadEmbeddedBackendAsset } from './embeddedBackendAsset.ts';
 
 // Packaged (`bun build --compile`) entrypoint. Mirrors `main.tsx` but injects

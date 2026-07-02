@@ -1,9 +1,10 @@
-import { bannerLines } from '@libs/exitSummary/banner.ts';
-import { boxed } from '@libs/exitSummary/border.ts';
-import { formatDuration } from '@libs/exitSummary/formatDuration.ts';
-import type { Colorize, ExitSummaryData } from '@libs/exitSummary/types.ts';
-import { PRODUCT_NAME } from '@libs/product/productMetadata.ts';
+import { bannerLines } from '@components/exitSummary/banner.ts';
+import { boxed } from '@components/exitSummary/border.ts';
+import { formatDuration } from '@components/exitSummary/formatDuration.ts';
+import type { Colorize, ExitSummaryData } from '@components/exitSummary/types.ts';
+import { PRODUCT_NAME } from '@constants/product.ts';
 import { visibleLength } from '@libs/terminal/ansiColor.ts';
+import { maxWidth } from '@libs/text/maxWidth.ts';
 import { theme } from '@theme/themeConfig.ts';
 
 const INSERTIONS_SIGN = '+';
@@ -46,17 +47,13 @@ function renderCard(rows: readonly string[], columns: number): string[] {
   const content = rows.length > 0 ? ['', ...rows] : [];
   for (const header of [bannerLines(), [PRODUCT_NAME]]) {
     const card = boxed([...header, ...content], { width: visibleLength });
-    if (cardWidth(card) <= columns) {
+    if (maxWidth(card, visibleLength) <= columns) {
       return card;
     }
   }
 
   // Too narrow for a bordered card — stack the rows plainly.
   return [...rows];
-}
-
-function cardWidth(lines: readonly string[]): number {
-  return lines.reduce((max, line) => Math.max(max, visibleLength(line)), 0);
 }
 
 function renderRow(

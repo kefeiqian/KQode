@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import { VERSION_ENV_VAR } from '@libs/runtime/buildEnv.ts';
+import { VERSION_ENV_VAR } from '@constants/env.ts';
 import { readProductVersion, resolveProductVersion } from '@libs/product/productMetadata.ts';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..');

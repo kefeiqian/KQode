@@ -1,10 +1,10 @@
 import type { createStore } from 'jotai';
-import { computeExitSummary } from '@libs/exitSummary/computeExitSummary.ts';
-import { formatExitSummaryCard } from '@libs/exitSummary/formatExitSummaryCard.ts';
+import { computeExitSummary } from '@components/exitSummary/computeExitSummary.ts';
+import { formatExitSummaryCard } from '@components/exitSummary/formatExitSummaryCard.ts';
 import type { GitLineDelta } from '@libs/git/lineDelta.ts';
 import { colorize as ansiColorize } from '@libs/terminal/ansiColor.ts';
-import type { Colorize } from '@libs/exitSummary/types.ts';
-import { DEFAULT_COLUMNS } from '@libs/tui/layout.ts';
+import type { Colorize } from '@components/exitSummary/types.ts';
+import { DEFAULT_COLUMNS } from '@constants/ui.ts';
 
 type Store = ReturnType<typeof createStore>;
 

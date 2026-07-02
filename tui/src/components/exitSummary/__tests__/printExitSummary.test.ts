@@ -1,7 +1,7 @@
 import { createStore } from 'jotai';
 import { describe, expect, it, vi } from 'vitest';
-import { printExitSummary } from '@libs/exitSummary/printExitSummary.ts';
-import type { Colorize } from '@libs/exitSummary/types.ts';
+import { printExitSummary } from '@components/exitSummary/printExitSummary.ts';
+import type { Colorize } from '@components/exitSummary/types.ts';
 import {
   sessionGitBaselineAtom,
   sessionStartedAtAtom,

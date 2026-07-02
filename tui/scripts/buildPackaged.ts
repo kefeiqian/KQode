@@ -4,12 +4,7 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import type { BunPlugin } from 'bun';
 import { exeSuffix, parseArgs, resolveProductVersion } from './scriptUtils.ts';
-import {
-  BACKEND_SHA256_ENV_VAR,
-  ENV_VAR,
-  PROD_ENV,
-  VERSION_ENV_VAR
-} from '../src/libs/runtime/buildEnv.ts';
+import { BACKEND_SHA256_ENV_VAR, VERSION_ENV_VAR } from '../src/constants/env.ts';
 
 /**
  * Builds the self-contained packaged `kqode` executable with Bun.
@@ -68,7 +63,9 @@ async function compile(version: string, sha256: string, outBase: string): Promis
     entrypoints: [entry],
     minify: true,
     define: {
-      ['process.env.' + ENV_VAR]: JSON.stringify(PROD_ENV),
+      __PROD__: 'true',
+      __TEST__: 'false',
+      __DEV__: 'false',
       ['process.env.' + VERSION_ENV_VAR]: JSON.stringify(version),
       ['process.env.' + BACKEND_SHA256_ENV_VAR]: JSON.stringify(sha256)
     },

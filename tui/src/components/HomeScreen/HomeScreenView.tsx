@@ -19,8 +19,7 @@ import {
 } from '@state/homeScreen/index.ts';
 import { columnsAtom, rowsAtom } from '@state/global/index.ts';
 import { theme } from '@theme/themeConfig.ts';
-
-const MOUSE_WHEEL_SCROLL_ROWS = 3;
+import { MOUSE_WHEEL_SCROLL_ROWS } from '@constants/ui.ts';
 
 export function HomeScreenView() {
   const { stdout } = useStdout();

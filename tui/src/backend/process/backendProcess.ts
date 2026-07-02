@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import type { Readable, Writable } from 'node:stream';
 import { BackendClientError, BackendErrorKind } from '@contracts/backend/index.ts';
 import { buildBackend, resolveBackendBinaryPath } from '@backend/process/backendBuild.ts';
-import { BACKEND_MODE_ARG } from '@backend/backendConstants.ts';
+import { BACKEND_MODE_ARG } from '@constants/backend.ts';
 import { buildHardenedEnv } from '@backend/process/processEnv.ts';
 import { killProcessTree } from '@backend/process/processUtils.ts';
 

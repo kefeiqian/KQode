@@ -2,6 +2,7 @@ import { Box, Text } from 'ink';
 import { useAtomValue } from 'jotai';
 import { DEFAULT_BODY_ENTRIES, resolveBodyRows } from '@libs/tui/bodyRows.ts';
 import type { BodyEntry, BodyRow } from '@libs/tui/bodyRows.ts';
+import { clamp } from '@libs/math/clamp.ts';
 import {
   bodyScrollOffsetRowsAtom,
   displayedBodyEntriesAtom,
@@ -9,6 +10,7 @@ import {
 } from '@state/homeScreen/index.ts';
 import { columnsAtom } from '@state/global/index.ts';
 import { theme } from '@theme/themeConfig.ts';
+import { SCROLLBAR_THUMB, SCROLLBAR_TRACK } from '@constants/ui.ts';
 
 export type { BodyEntry } from '@libs/tui/bodyRows.ts';
 export { countBodyRows, DEFAULT_BODY_ENTRIES } from '@libs/tui/bodyRows.ts';
@@ -24,9 +26,6 @@ type BodyPaneProps = {
   columns?: number;
   scrollOffsetRows?: number;
 };
-
-const SCROLLBAR_TRACK = '│';
-const SCROLLBAR_THUMB = '┃';
 
 export function BodyPane({
   entries,
@@ -129,8 +128,4 @@ function renderScrollbar({
 
 function padBodyText(text: string, contentColumns: number): string {
   return text.padEnd(contentColumns, ' ');
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }

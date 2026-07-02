@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { boxed } from '@libs/exitSummary/border.ts';
+import { boxed } from '@components/exitSummary/border.ts';
 
 describe('boxed', () => {
   it('wraps lines in a rounded border sized to the widest line', () => {
