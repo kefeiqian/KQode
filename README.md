@@ -83,6 +83,16 @@ submitted prompt (`ACK: message received`); it does not yet call a model, run
 tools, or execute an agent loop, and the slash-command, mention, and model
 affordances are inert placeholders for now.
 
+Prepare or reset that fixture workspace explicitly with:
+
+```bash
+cargo xtask fixture-prepare-react-simple   # committed simple React fixture
+cargo xtask fixture-prepare-react-complex  # cached official Vite React template
+```
+
+`tui-dev` prepares a workspace on demand, so these are only needed to reset it or
+switch to a specific fixture.
+
 ### Standalone executable
 
 `kqode` ships as a single native executable that bundles the Ink frontend with a
