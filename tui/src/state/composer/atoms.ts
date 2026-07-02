@@ -1,4 +1,5 @@
 import { atom } from 'jotai';
+import { clamp } from '@libs/math/clamp.ts';
 import { overLimitMessage, PROMPT_MAX_BYTES } from '@state/composer/text.ts';
 
 export type ComposerState = {
@@ -120,7 +121,7 @@ export const setComposerValidationErrorAtom = atom(null, (_get, set, message: st
 });
 
 function clampCursorIndex(text: string, cursorIndex: number): number {
-  return Math.max(0, Math.min(cursorIndex, text.length));
+  return clamp(cursorIndex, 0, text.length);
 }
 
 function previousCodePointStart(text: string, cursorIndex: number): number {

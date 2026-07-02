@@ -1,3 +1,5 @@
+import { capUtf8Bytes } from '@libs/text/utf8.ts';
+
 /** Decoded UTF-8 ceiling for backend/error output rendered in the body. */
 export const DISPLAY_OUTPUT_MAX_BYTES = 128 * 1024;
 
@@ -15,21 +17,10 @@ const CONTROL_CHAR_PATTERN = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g;
  * at `maxBytes` decoded UTF-8 so a huge payload cannot flood the transcript.
  */
 export function sanitizeDisplayText(text: string, maxBytes = DISPLAY_OUTPUT_MAX_BYTES): string {
-  return capUtf8(text, maxBytes).replace(CONTROL_CHAR_PATTERN, escapeControlChar);
+  return capUtf8Bytes(text, maxBytes).replace(CONTROL_CHAR_PATTERN, escapeControlChar);
 }
 
 function escapeControlChar(char: string): string {
   const codePoint = char.codePointAt(0) ?? 0;
   return `\\x${codePoint.toString(16).padStart(2, '0')}`;
-}
-
-function capUtf8(text: string, maxBytes: number): string {
-  const bytes = new TextEncoder().encode(text);
-  if (bytes.length <= maxBytes) {
-    return text;
-  }
-
-  // Decoding a truncated byte view replaces any partial trailing code point
-  // with U+FFFD, so the result never ends mid-sequence.
-  return new TextDecoder('utf-8').decode(bytes.subarray(0, maxBytes));
 }

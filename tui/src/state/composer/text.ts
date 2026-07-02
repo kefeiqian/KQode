@@ -1,10 +1,10 @@
+import { utf8ByteLength } from '@libs/text/utf8.ts';
+
 export const PROMPT_MAX_BYTES = 64 * 1024;
 
 type SubmitValidation =
   | { ok: true; text: string }
   | { ok: false; reason: 'empty' | 'over-limit'; message: string };
-
-const textEncoder = new TextEncoder();
 
 export function printableInput(input: string): string {
   return input.replace(/[\u0000-\u001f\u007f]/g, '');
@@ -38,7 +38,7 @@ export function validateComposerSubmit(
 }
 
 export function overLimitMessage(text: string, maxBytes: number): string | null {
-  const byteLength = textEncoder.encode(text).length;
+  const byteLength = utf8ByteLength(text);
   if (byteLength <= maxBytes) {
     return null;
   }

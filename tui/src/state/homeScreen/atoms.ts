@@ -3,6 +3,7 @@ import { countBodyRows, DEFAULT_BODY_ENTRIES } from '@libs/tui/bodyRows.ts';
 import type { BodyEntry } from '@libs/tui/bodyRows.ts';
 import { countCwdRows } from '@libs/tui/cwdLine.ts';
 import { headerRowCount } from '@libs/tui/layout.ts';
+import { clamp } from '@libs/math/clamp.ts';
 import {
   bodyEntriesAtom,
   columnsAtom,
@@ -84,6 +85,6 @@ export const composerTopAtom = atom((get) => {
 export const scrollBodyByRowsAtom = atom(null, (get, set, deltaRows: number) => {
   const maxBodyScrollOffsetRows = get(maxBodyScrollOffsetRowsAtom);
   set(bodyScrollOffsetRowsAtom, (current) =>
-    Math.min(maxBodyScrollOffsetRows, Math.max(0, current + deltaRows))
+    clamp(current + deltaRows, 0, maxBodyScrollOffsetRows)
   );
 });
