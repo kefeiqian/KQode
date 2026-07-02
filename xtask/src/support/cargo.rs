@@ -1,10 +1,17 @@
 use std::{path::Path, process::Command};
 
+/// Build variable and value that compile the packaged backend under the
+/// `kqode_env = "prod"` cfg. Mirrors `KQODE_ENV` in the TUI packaging define.
+const BUILD_ENV_VAR: &str = "KQODE_ENV";
+const PROD_ENV: &str = "prod";
+
 /// Builds a Cargo binary target in release mode from the repository root.
 ///
 /// Used by the packaging command to produce the backend that gets embedded into
 /// the standalone executable. The build runs from the trusted `repo_root` so the
-/// manifest and `.cargo` config come from the repository, not a workspace.
+/// manifest and `.cargo` config come from the repository, not a workspace, and
+/// sets `KQODE_ENV=prod` so the backend compiles under the `kqode_env = "prod"`
+/// cfg — matching the packaged TUI's prod build.
 ///
 /// # Errors
 ///
@@ -12,6 +19,7 @@ use std::{path::Path, process::Command};
 pub fn build_release_bin(repo_root: &Path, bin: &str) -> Result<(), String> {
     let status = Command::new(command())
         .args(["build", "--release", "--bin", bin])
+        .env(BUILD_ENV_VAR, PROD_ENV)
         .current_dir(repo_root)
         .status()
         .map_err(|error| format!("run cargo build --release --bin {bin}: {error}"))?;
