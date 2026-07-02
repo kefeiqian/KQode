@@ -96,7 +96,7 @@ KQode currently has a starter Rust binary and a checked-in starter TypeScript TU
 - [x] `Cargo.toml` defines a single Rust package named `KQode`, version `0.1.0`, edition `2024`, with no dependencies yet.
 - [x] `src/main.rs` is the only Rust runtime source today and currently prints a starter message; this plan moves the binary entrypoint to root `main.rs` and keeps implementation modules under `src/`.
 - [x] `docs/kqode_architecture_spec.md` assigns the Rust core runtime to Rust and the Ink TUI/protocol client to TypeScript. Its older daemon-mode direction is superseded for this product slice by the explicit no-daemon decision in this plan.
-- [ ] `docs/kqode_build_path.md` requires the Rust core to run headless while Ink remains the committed TUI.
+- [x] `docs/kqode_build_path.md` requires the Rust core to run headless while Ink remains the committed TUI.
 - [x] `.cargo/config.toml` exposes `cargo xtask ...` as the contributor-facing command shape for nested TUI and fixture workflows.
 - [x] `.gitignore` covers Rust artifacts, TUI dependency/build artifacts, generated fixture workspaces, and local/editor files.
 - [x] `tui/package.json` records the Bun-managed package baseline (`bun@1.3.12`, Bun `>=1.3.0`, Node `>=24.0.0`) and keeps package-local `dev`, `typecheck`, and `test` scripts available behind Cargo-facing xtask commands.
@@ -111,7 +111,7 @@ KQode currently has a starter Rust binary and a checked-in starter TypeScript TU
 ### External References
 - [x] Ink documentation: use React-style `Box`, `Text`, and hooks for terminal rendering, with component tests through Ink testing utilities.
 - [x] Node `child_process.spawn` documentation: use argument arrays and `shell: false` for the Rust backend process rather than shelling through `exec`.
-- [ ] Bun's `bun build --compile` produces the single native executable that bundles the Ink entrypoint and its dependency closure; Node SEA and `postject` were evaluated during planning but not used.
+- [x] Bun's `bun build --compile` produces the single native executable that bundles the Ink entrypoint and its dependency closure; Node SEA and `postject` were evaluated during planning but not used.
 - [x] npm, Homebrew, and winget are distribution channels for prebuilt artifacts in this slice, not source-build mechanisms.
 - [x] JSON-RPC reference: use a library-backed request/response connection now for local ACK backend messages, while deferring the broader agent session protocol.
 - [x] NO_COLOR guidance: keep a later path for color-disabled terminals even though full theme configuration is out of scope.
@@ -123,12 +123,12 @@ KQode currently has a starter Rust binary and a checked-in starter TypeScript TU
 - [x] Use a nested Bun-managed TypeScript package in `tui/`: This satisfies the origin path requirement without forcing a root JavaScript workspace before the broader M0 structure exists.
 - [x] Use Bun 1.3.x plus Node 24+ as the TUI source baseline: Record both the Bun package manager and Node runtime expectation in package metadata so Ink/ESM/Vitest behavior is reproducible.
 - [x] Expose source workflows through Cargo-facing xtask commands: contributors should reach TUI install/typecheck/test/dev and fixture preparation from the repository root, while Bun/package scripts remain the nested implementation detail.
-- [ ] Keep Ink components prop-driven and backend-agnostic: Layout components should not import process-spawning code, preserving the Rust core / Ink TUI boundary.
+- [x] Keep Ink components prop-driven and backend-agnostic: Layout components should not import process-spawning code, preserving the Rust core / Ink TUI boundary.
 - [x] Use a small library-backed JSON-RPC message seam: The TUI calls a backend client now, and that seam can later expand into a real protocol client without rewriting the UI tree.
 - [x] Use a TUI-owned Rust JSON-RPC stdio server for the first backend: This is not a daemon, exposes no socket/port, and exits with the TUI, but it is closer to KQode's intended Rust-core/TypeScript-surface boundary than one process per submit.
 - [x] Make the backend launch path clean-checkout-safe: The documented demo path must build or run the Rust backend from source rather than assuming an ignored `target/` artifact already exists.
 - [x] Use Cargo as the default first-slice backend build path: build from the trusted `repoRoot` manifest/config, then launch the compiled backend with process cwd set to `workspaceCwd`, so untrusted workspace Cargo config/PATH cannot influence the build step.
-- [ ] Ship a standalone `kqode` executable as the core release artifact: Bundle the TypeScript Ink entrypoint into a Bun-compiled native executable and embed/carry the compiled Rust backend binary so one user-invoked executable starts both frontend and backend.
+- [x] Ship a standalone `kqode` executable as the core release artifact: Bundle the TypeScript Ink entrypoint into a Bun-compiled native executable and embed/carry the compiled Rust backend binary so one user-invoked executable starts both frontend and backend.
 - [x] Use install channels as distribution wrappers, not alternate runtimes: npm global install, Homebrew, winget, and direct download should all select or install the same platform-specific `kqode` executable rather than rebuilding from source.
 - [x] Name path roles explicitly: `repoRoot` is the KQode repository root for Cargo/product metadata, `workspaceCwd` is the user's launch directory from `process.cwd()` when `kqode` starts and is displayed above the composer/used for backend execution, and `tuiPackageRoot` is the nested package directory.
 - [x] Keep a committed dummy React frontend project fixture under `tests/fixtures/dummy-react-app/` as read-only seed data and provide an optional cached complex Vite fixture through xtask: Automated tests and manual development runs must copy a selected fixture into ignored workspaces under `target/kqode-test-workspaces/` before running `kqode`, so edits do not dirty the repository.
@@ -195,7 +195,7 @@ KQode currently has a starter Rust binary and a checked-in starter TypeScript TU
 - [x] **TypeScript JSON-RPC** (`vscode-jsonrpc`): Manage JSON-RPC request IDs, response routing, errors, and stream framing over the Rust child process stdio pipes.
 - [x] **Rust JSON-RPC** (`lsp-server`, `serde`, `serde_json`): Use proven JSON-RPC stdio message handling on the Rust side while defining only KQode's ACK method and params/result types.
 - [x] **Process boundary** (Node built-ins `node:child_process`, `node:path`, `node:fs`; `tree-kill`): Spawn Cargo or the bundled Rust backend without shelling out through `exec`, with timeout and cross-platform process-tree cleanup guards.
-- [ ] **Standalone executable packaging** (originally planned Node SEA + `postject`, superseded): Replaced by the Bun `--compile` path above, which builds the native `kqode` executable and launches the packaged Rust backend asset; Node SEA and `postject` are no longer used.
+- [x] **Standalone executable packaging** (originally planned Node SEA + `postject`, superseded): Replaced by the Bun `--compile` path above, which builds the native `kqode` executable and launches the packaged Rust backend asset; Node SEA and `postject` are no longer used.
 - [x] **Distribution packaging** (release archives and checksums; registration guide for npm/Homebrew/winget): Produce GitHub Release-ready artifacts and document how package-manager manifests point at those release URLs.
 - [x] **GitHub release automation** (GitHub Actions, `gh` CLI or `actions/upload-artifact`/release upload actions): Build cross-platform standalone archives, produce checksums, and upload them to GitHub Releases.
 - [x] **JSON-RPC protocol scope** (KQode-owned method names and typed params/results): Use libraries for transport/protocol mechanics, but keep the first method surface intentionally small until the real session protocol exists.
@@ -375,7 +375,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 >
 > Reconciliation note (2026-07-02): Marked the plan **completed** after verifying every unit (U1–U13) is delivered and green — full Rust workspace + xtask tests, the TUI vitest suite (163 passing), and `tsc` typecheck. Removed superseded packaging references (Node SEA/`postject`/Rollup → Bun `--compile`; npm root + optional-dependency packages → a single `@kqode/kqode-cli` that downloads and verifies its binary), refreshed the Output Structure tree and the U12 target matrix to the as-built layout/runners, and fixed drifted test paths. `README.md` gained standalone-executable and distribution sections.
 
-- [ ] Review batching: after U2 and U3 land the static home screen and composer behavior, U4-U8 can be reviewed as one source-mode ACK integration batch because those units add the Rust backend mode, protocol wiring, guarded launcher, backend client, and submit/ACK UI integration.
+- [x] Review batching: after U2 and U3 land the static home screen and composer behavior, U4-U8 can be reviewed as one source-mode ACK integration batch because those units add the Rust backend mode, protocol wiring, guarded launcher, backend client, and submit/ACK UI integration.
 
 ### Implementation Gates
 
@@ -876,7 +876,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Delivered:** npm distribution changed from the initially scaffolded root + platform-specific optional-dependency packages (the removed `tui/scripts/stageNpm.ts`) to a single `@kqode/kqode-cli` package under `packaging/npm/kqode/` that downloads and verifies its binary. Release archives, per-target and aggregate checksums, the `cargo xtask package-release` command, the CI matrix (`.github/workflows/release.yml`), and the registration guide (`docs/release/kqode_distribution_registration.md`) are all delivered.
 
 **Approach:**
-- [ ] Define the first supported target matrix for the standalone executable: macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64. The Linux libc split can be refined later if Bun or Rust backend constraints require separate GNU/musl artifacts.
+- [x] Define the first supported target matrix for the standalone executable: macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64. The Linux libc split can be refined later if Bun or Rust backend constraints require separate GNU/musl artifacts.
 
 | Target artifact | CI runner | Rust backend target | Archive | Smoke test |
 |-----------------|-----------|---------------------|---------|------------|
@@ -889,10 +889,10 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 - [x] Package direct-download artifacts as `kqode-<target>.tar.gz` for Unix-like targets and `kqode-<target>.zip` for Windows, each containing the standalone executable.
 - [x] Generate per-archive `.sha256` files and an aggregate `checksums.txt` for GitHub Release upload.
-- [ ] Expose release packaging through the `cargo xtask package-release` command, which delegates to the Bun/package-local `packageRelease.ts` script internally.
+- [x] Expose release packaging through the `cargo xtask package-release` command, which delegates to the Bun/package-local `packageRelease.ts` script internally.
 - [x] Do not generate npm/Homebrew/winget directories under `tui/dist/release/`. Those ecosystems consume published artifact URLs, not local staging folders.
 - [x] Write `docs/release/kqode_distribution_registration.md` after the echo/ACK executable works and release archives exist. The guide should walk a maintainer through GitHub Release asset upload/direct download, npm package registration/publish flow, Homebrew formula/tap registration, and winget manifest submission, each pointing at the GitHub Release asset URLs and checksums.
-- [ ] Distribute npm as a single `@kqode/kqode-cli` package that ships no binary: on postinstall (with a first-run fallback) it downloads the matching `kqode-<os>-<arch>` release archive, verifies its SHA-256 against the published checksum, and extracts the standalone executable locally; the `bin` launcher then execs it. (The originally planned root + platform-specific optional-dependency layout was evaluated but not used.)
+- [x] Distribute npm as a single `@kqode/kqode-cli` package that ships no binary: on postinstall (with a first-run fallback) it downloads the matching `kqode-<os>-<arch>` release archive, verifies its SHA-256 against the published checksum, and extracts the standalone executable locally; the `bin` launcher then execs it. (The originally planned root + platform-specific optional-dependency layout was evaluated but not used.)
 - [x] Keep publishing credentials, registry upload, tap submission, winget submission, signing, notarization, and auto-update out of this implementation unit.
 
 **Patterns to follow:**
@@ -903,11 +903,11 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Test scenarios:**
 - [x] Happy path: release packaging creates a direct-download archive and checksum for the current host target.
-- [ ] Happy path: every supported target has a declared runner, Rust target, archive format, and smoke-test status.
+- [x] Happy path: every supported target has a declared runner, Rust target, archive format, and smoke-test status.
 - [x] Happy path: `cargo xtask package-release` produces the same archive/checksum layout as the lower-level package script.
 - [x] Happy path: release packaging creates an aggregate `checksums.txt` covering all generated archives.
 - [x] Happy path: the registration guide names the generated artifact paths, the expected GitHub Release asset URL shape, and the manual publish/registration steps for GitHub direct download, npm, Homebrew, and winget.
-- [ ] Happy path: the registration guide explains the single `@kqode/kqode-cli` package's postinstall/first-run download-and-verify flow and how its `bin` locates the extracted executable.
+- [x] Happy path: the registration guide explains the single `@kqode/kqode-cli` package's postinstall/first-run download-and-verify flow and how its `bin` locates the extracted executable.
 - [x] Edge case: missing standalone executable fails packaging with an explicit error instead of falling back to source-mode or package-manager runtime execution.
 - [x] Edge case: unsupported platform/arch reports a clear unsupported-target error.
 
@@ -966,12 +966,12 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 ---
 
 ## System-Wide Impact
-- [ ] **Interaction graph:** The new surface is a nested TypeScript package plus one Rust binary JSON-RPC backend mode and a standalone executable packaging the runtime artifacts together; no providers, tools, session persistence, full session protocol, session replay, or VFS are involved.
-- [ ] **Error propagation:** Rust JSON-RPC errors, malformed responses, backend-process failures, and request timeouts should become visible TUI errors, not swallowed output or silent no-ops.
-- [ ] **State lifecycle risks:** This slice keeps transcript and queue state in memory only; durable session persistence, full trace/replay state, and provider state remain out of scope, and dist output remains generated for this slice.
-- [ ] **API surface parity:** The backend mode is an internal integration proof, not a public CLI contract. Headless agent functionality remains unchanged.
-- [ ] **Integration coverage:** Cross-layer coverage is required for the process backend client and the App submit flow because component tests alone cannot prove Rust/Ink wiring.
-- [ ] **Unchanged invariants:** Slash/status hints remain inert, model label remains static, and KQode still does not run a model/provider/tool from the TUI.
+- [x] **Interaction graph:** The new surface is a nested TypeScript package plus one Rust binary JSON-RPC backend mode and a standalone executable packaging the runtime artifacts together; no providers, tools, session persistence, full session protocol, session replay, or VFS are involved.
+- [x] **Error propagation:** Rust JSON-RPC errors, malformed responses, backend-process failures, and request timeouts should become visible TUI errors, not swallowed output or silent no-ops.
+- [x] **State lifecycle risks:** This slice keeps transcript and queue state in memory only; durable session persistence, full trace/replay state, and provider state remain out of scope, and dist output remains generated for this slice.
+- [x] **API surface parity:** The backend mode is an internal integration proof, not a public CLI contract. Headless agent functionality remains unchanged.
+- [x] **Integration coverage:** Cross-layer coverage is required for the process backend client and the App submit flow because component tests alone cannot prove Rust/Ink wiring.
+- [x] **Unchanged invariants:** Slash/status hints remain inert, model label remains static, and KQode still does not run a model/provider/tool from the TUI.
 
 ---
 
@@ -997,30 +997,30 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 ## Documentation / Operational Notes
 
-- [ ] Update `README.md` with the TUI run path and standalone-executable build, noting that the current TUI only ACKs submitted text (the real model turn lands in the streaming-chat plan).
-- [ ] Document both source-mode and standalone-executable terminal testing paths.
-- [ ] Document Cargo-facing xtask commands for contributor workflows, including fixture preparation, TUI build/test orchestration, and release packaging; Bun/package-local scripts remain package-internal implementation details.
-- [ ] Document the intended install channels as artifact consumers: direct download, `npm install -g`, Homebrew, and winget.
-- [ ] Add `docs/release/kqode_distribution_registration.md` as the maintainer guide for registering/publishing generated artifacts after the echo executable is working.
-- [ ] Document the GitHub Release workflow trigger, expected release assets, and the relationship between uploaded asset URLs and downstream npm/Homebrew/winget registration.
-- [ ] Clarify that Cargo is required only for source-mode development, not for packaged-user execution.
-- [ ] Do not document slash commands, model selection, or real agent behavior as available from this TUI slice.
-- [ ] Keep any backend ACK wording framed as a development/demo seam, not as the final session protocol.
+- [x] Update `README.md` with the TUI run path and standalone-executable build, noting that the current TUI only ACKs submitted text (the real model turn lands in the streaming-chat plan).
+- [x] Document both source-mode and standalone-executable terminal testing paths.
+- [x] Document Cargo-facing xtask commands for contributor workflows, including fixture preparation, TUI build/test orchestration, and release packaging; Bun/package-local scripts remain package-internal implementation details.
+- [x] Document the intended install channels as artifact consumers: direct download, `npm install -g`, Homebrew, and winget.
+- [x] Add `docs/release/kqode_distribution_registration.md` as the maintainer guide for registering/publishing generated artifacts after the echo executable is working.
+- [x] Document the GitHub Release workflow trigger, expected release assets, and the relationship between uploaded asset URLs and downstream npm/Homebrew/winget registration.
+- [x] Clarify that Cargo is required only for source-mode development, not for packaged-user execution.
+- [x] Do not document slash commands, model selection, or real agent behavior as available from this TUI slice.
+- [x] Keep any backend ACK wording framed as a development/demo seam, not as the final session protocol.
 
 ---
 
 ## Sources & References
-- [ ] **Origin document:** [docs/brainstorms/2026-06-25-first-ink-tui-homepage-requirements.md](../brainstorms/2026-06-25-first-ink-tui-homepage-requirements.md)
-- [ ] Product architecture: [docs/kqode_architecture_spec.md](../kqode_architecture_spec.md)
-- [ ] Build path: [docs/kqode_build_path.md](../kqode_build_path.md)
-- [ ] Adjacent context plan: [docs/plans/2026-06-25-002-feat-context-intent-retrieval-planning-plan.md](2026-06-25-002-feat-context-intent-retrieval-planning-plan.md)
-- [ ] Reference spawn architecture research: [docs/research/2026-06-25-tui-backend-spawn-architecture.md](../research/2026-06-25-tui-backend-spawn-architecture.md)
-- [ ] Ink documentation: [github.com/vadimdemedes/ink](https://github.com/vadimdemedes/ink)
-- [ ] Ink testing utilities: [github.com/vadimdemedes/ink-testing-library](https://github.com/vadimdemedes/ink-testing-library)
-- [ ] Node child processes: [nodejs.org/api/child_process.html](https://nodejs.org/api/child_process.html)
-- [ ] Bun single-file executables (`bun build --compile`): [bun.sh/docs/bundler/executables](https://bun.sh/docs/bundler/executables)
-- [ ] npm `package.json` `bin`: [docs.npmjs.com/cli/v11/configuring-npm/package-json#bin](https://docs.npmjs.com/cli/v11/configuring-npm/package-json#bin)
-- [ ] Homebrew formula cookbook: [docs.brew.sh/Formula-Cookbook](https://docs.brew.sh/Formula-Cookbook)
-- [ ] winget manifests: [learn.microsoft.com/windows/package-manager/package/manifest](https://learn.microsoft.com/windows/package-manager/package/manifest)
-- [ ] JSON-RPC reference: [jsonrpc.org/specification](https://www.jsonrpc.org/specification)
-- [ ] NO_COLOR guidance: [no-color.org](https://no-color.org/)
+- [x] **Origin document:** [docs/brainstorms/2026-06-25-first-ink-tui-homepage-requirements.md](../brainstorms/2026-06-25-first-ink-tui-homepage-requirements.md)
+- [x] Product architecture: [docs/kqode_architecture_spec.md](../kqode_architecture_spec.md)
+- [x] Build path: [docs/kqode_build_path.md](../kqode_build_path.md)
+- [x] Adjacent context plan: [docs/plans/2026-06-25-002-feat-context-intent-retrieval-planning-plan.md](2026-06-25-002-feat-context-intent-retrieval-planning-plan.md)
+- [x] Reference spawn architecture research: [docs/research/2026-06-25-tui-backend-spawn-architecture.md](../research/2026-06-25-tui-backend-spawn-architecture.md)
+- [x] Ink documentation: [github.com/vadimdemedes/ink](https://github.com/vadimdemedes/ink)
+- [x] Ink testing utilities: [github.com/vadimdemedes/ink-testing-library](https://github.com/vadimdemedes/ink-testing-library)
+- [x] Node child processes: [nodejs.org/api/child_process.html](https://nodejs.org/api/child_process.html)
+- [x] Bun single-file executables (`bun build --compile`): [bun.sh/docs/bundler/executables](https://bun.sh/docs/bundler/executables)
+- [x] npm `package.json` `bin`: [docs.npmjs.com/cli/v11/configuring-npm/package-json#bin](https://docs.npmjs.com/cli/v11/configuring-npm/package-json#bin)
+- [x] Homebrew formula cookbook: [docs.brew.sh/Formula-Cookbook](https://docs.brew.sh/Formula-Cookbook)
+- [x] winget manifests: [learn.microsoft.com/windows/package-manager/package/manifest](https://learn.microsoft.com/windows/package-manager/package/manifest)
+- [x] JSON-RPC reference: [jsonrpc.org/specification](https://www.jsonrpc.org/specification)
+- [x] NO_COLOR guidance: [no-color.org](https://no-color.org/)
