@@ -876,12 +876,11 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 **Delivered:** npm distribution changed from the initially scaffolded root + platform-specific optional-dependency packages (the removed `tui/scripts/stageNpm.ts`) to a single `@kqode/kqode-cli` package under `packaging/npm/kqode/` that downloads and verifies its binary. Release archives, per-target and aggregate checksums, the `cargo xtask package-release` command, the CI matrix (`.github/workflows/release.yml`), and the registration guide (`docs/release/kqode_distribution_registration.md`) are all delivered.
 
 **Approach:**
-- [x] Define the first supported target matrix for the standalone executable: macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64. The Linux libc split can be refined later if Bun or Rust backend constraints require separate GNU/musl artifacts.
+- [ ] Define the first supported target matrix for the standalone executable: macOS arm64, Linux arm64/x64, and Windows arm64/x64. (Intel macOS/`darwin-x64` was dropped after launch — see `.github/workflows/release.yml`.) The Linux libc split can be refined later if Bun or Rust backend constraints require separate GNU/musl artifacts.
 
 | Target artifact | CI runner | Rust backend target | Archive | Smoke test |
 |-----------------|-----------|---------------------|---------|------------|
 | `kqode-darwin-arm64` | `macos-14` | `aarch64-apple-darwin` | `.tar.gz` | Runs on the native arm64 runner. |
-| `kqode-darwin-x64` | `macos-13` | `x86_64-apple-darwin` | `.tar.gz` | Runs on the native x64 runner. |
 | `kqode-linux-x64` | `ubuntu-22.04` | `x86_64-unknown-linux-gnu` | `.tar.gz` | Runs on CI. |
 | `kqode-linux-arm64` | `ubuntu-22.04-arm` | `aarch64-unknown-linux-gnu` | `.tar.gz` | Runs on the native arm64 runner (free on public repos). |
 | `kqode-windows-x64` | `windows-2022` | `x86_64-pc-windows-msvc` | `.zip` | Runs on CI. |
@@ -928,7 +927,7 @@ After each commit-sized unit lands, run code review on the completed unit, then 
 
 **Approach:**
 - [x] Trigger on version tags such as `v*` and allow manual `workflow_dispatch` for release candidates.
-- [x] Build the standalone executable matrix for macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64 using the same `cargo xtask package-release` path as local U12.
+- [ ] Build the standalone executable matrix for macOS arm64, Linux arm64/x64, and Windows arm64/x64 using the same `cargo xtask package-release` path as local U12.
 - [x] Use a two-stage workflow: matrix jobs build and upload workflow artifacts only; one final release job downloads all matrix artifacts, verifies the complete manifest/checksums, creates or updates the GitHub Release idempotently, and uploads per-target archives, per-target `.sha256` files, and aggregate `checksums.txt`.
 - [x] Keep this unsigned/not-notarized for the first slice unless implementation discovers platform requirements that block execution entirely.
 - [x] Add minimum release authenticity controls: protected release tags/environments where available, explicit least-privilege workflow permissions, pinned third-party actions by version or SHA, GitHub artifact attestations or signed checksums when available, and verification instructions in the registration guide.
