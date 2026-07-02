@@ -6,10 +6,10 @@ import type { BunPlugin } from 'bun';
 import { exeSuffix, parseArgs, resolveProductVersion } from './scriptUtils.ts';
 import {
   BACKEND_SHA256_ENV_VAR,
-  DISTRIBUTION_ENV_VAR,
-  PACKAGED_DISTRIBUTION,
+  ENV_VAR,
+  PROD_ENV,
   VERSION_ENV_VAR
-} from '../src/libs/runtime/distributionMode.ts';
+} from '../src/libs/runtime/buildEnv.ts';
 
 /**
  * Builds the self-contained packaged `kqode` executable with Bun.
@@ -68,7 +68,7 @@ async function compile(version: string, sha256: string, outBase: string): Promis
     entrypoints: [entry],
     minify: true,
     define: {
-      ['process.env.' + DISTRIBUTION_ENV_VAR]: JSON.stringify(PACKAGED_DISTRIBUTION),
+      ['process.env.' + ENV_VAR]: JSON.stringify(PROD_ENV),
       ['process.env.' + VERSION_ENV_VAR]: JSON.stringify(version),
       ['process.env.' + BACKEND_SHA256_ENV_VAR]: JSON.stringify(sha256)
     },

@@ -2,15 +2,19 @@ import { atom } from 'jotai';
 import { DEFAULT_COLUMNS, DEFAULT_ROWS, MIN_ROWS } from '@libs/tui/layout.ts';
 
 // Test-only seams that pin a deterministic viewport ahead of the live terminal
-// size; production never sets these, so columns/rows resolve to window ?? default.
-export const columnsTestOverrideAtom = atom<number | undefined>(undefined);
-export const rowsTestOverrideAtom = atom<number | undefined>(undefined);
+// size. Only read when `KQODE_ENV === 'test'` (see `@libs/runtime/buildEnv.ts`):
+// the `prod` build inlines that literal and dead-code-eliminates both the reads
+// below and — via the `@__PURE__` annotation — these declarations. `dev` keeps
+// the branch but never sets them, so columns/rows resolve to window ?? default.
+export const columnsTestOverrideAtom = /* @__PURE__ */ atom<number | undefined>(undefined);
+export const rowsTestOverrideAtom = /* @__PURE__ */ atom<number | undefined>(undefined);
 export const windowColumnsAtom = atom<number | undefined>(undefined);
 export const windowRowsAtom = atom<number | undefined>(undefined);
 
-export const columnsAtom = atom(
-  (get) => get(columnsTestOverrideAtom) ?? get(windowColumnsAtom) ?? DEFAULT_COLUMNS
-);
+export const columnsAtom = atom((get) => {
+  const override = process.env.KQODE_ENV === 'test' ? get(columnsTestOverrideAtom) : undefined;
+  return override ?? get(windowColumnsAtom) ?? DEFAULT_COLUMNS;
+});
 
 /**
  * Rows reserved below the UI so a frame never fills the terminal *exactly*.
@@ -30,7 +34,7 @@ export const FULLSCREEN_GUARD_ROWS = 1;
  * overrides pin the canvas directly and bypass the reservation.
  */
 export const rowsAtom = atom((get) => {
-  const override = get(rowsTestOverrideAtom);
+  const override = process.env.KQODE_ENV === 'test' ? get(rowsTestOverrideAtom) : undefined;
   if (override !== undefined) {
     return Math.max(MIN_ROWS, override);
   }

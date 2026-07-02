@@ -47,17 +47,17 @@ export type CreateAppRuntimeOptions = {
 };
 
 /**
- * Composes the TUI store and the distribution-appropriate backend client.
+ * Composes the TUI store and the environment-appropriate backend client.
  *
- * The `process.env.KQODE_DISTRIBUTION === 'packaged'` check is intentionally a
- * string literal (matching `PACKAGED_DISTRIBUTION`): Bun `--define` inlines it
- * at build time so the unused launch strategy is dead-code-eliminated — the
- * Cargo source-launch code is dropped from the packaged executable, and the
- * packaged client is never resolved in source mode. Each strategy is therefore
- * loaded with a dynamic `import()` inside its own branch.
+ * The `process.env.KQODE_ENV === 'prod'` check is intentionally a string literal
+ * (matching `PROD_ENV`): Bun `--define` inlines it at build time so the unused
+ * launch strategy is dead-code-eliminated — the Cargo source-launch code is
+ * dropped from the packaged executable, and the packaged client is never
+ * resolved outside `prod`. Each strategy is therefore loaded with a dynamic
+ * `import()` inside its own branch; `dev` and `test` both take the source path.
  *
  * `entryUrl` is the source-mode anchor used to locate the repo root for Cargo
- * and product metadata; it is ignored in packaged mode.
+ * and product metadata; it is ignored in the packaged (`prod`) build.
  */
 export async function createAppRuntime({
   entryUrl,
@@ -76,7 +76,7 @@ export async function createAppRuntime({
 
   let client: BackendClientHandle;
   let productVersion: string;
-  if (process.env.KQODE_DISTRIBUTION === 'packaged') {
+  if (process.env.KQODE_ENV === 'prod') {
     if (loadPackagedAsset === undefined) {
       throw new Error('packaged runtime requires an embedded backend asset loader');
     }
